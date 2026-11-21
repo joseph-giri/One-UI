@@ -1,0 +1,597 @@
+<Window x:Class="OneUI.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OneUI Settings"
+        Width="720"
+        Height="560"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource GlassSurfaceBrush}"
+            BorderBrush="{DynamicResource LiquidGlassRimBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Sidebar -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource GlassSidebarBrush}"
+                    CornerRadius="8,0,0,8"
+                    Padding="14,16"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Brand Identity Card -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="2,4,0,22">
+                        <Border Width="36" Height="36" CornerRadius="9" Margin="0,0,10,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#FF2AA8FF" Offset="0"/>
+                                    <GradientStop Color="#FF5E5CE6" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="&#xE771;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="17" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="OneUI" FontWeight="SemiBold" FontSize="14.5" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                            <TextBlock Text="Liquid Glass Suite" FontSize="11" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Sidebar Navigation Tabs -->
+                    <StackPanel Grid.Row="1">
+                        <Button x:Name="NavGeneralBtn" Style="{StaticResource SidebarNavButton}" Tag="Selected" Click="NavGeneral_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="22" Height="22" CornerRadius="5" Background="#FF0A84FF" Margin="0,0,9,0">
+                                    <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="General &amp; Glass" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="NavWallpaperBtn" Style="{StaticResource SidebarNavButton}" Click="NavWallpaper_Click" Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="22" Height="22" CornerRadius="5" Background="#FFBF5AF2" Margin="0,0,9,0">
+                                    <TextBlock Text="&#xEB9F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Live Wallpaper" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="NavWidgetsBtn" Style="{StaticResource SidebarNavButton}" Click="NavWidgets_Click" Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="22" Height="22" CornerRadius="5" Background="#FF30D158" Margin="0,0,9,0">
+                                    <TextBlock Text="&#xF0E2;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Desktop Widgets" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Bottom Safety Restore Button -->
+                    <Button Grid.Row="2"
+                            Style="{StaticResource GlassTileButton}"
+                            Background="#38FF453A"
+                            Click="RestoreAndQuit_Click"
+                            Padding="10,8">
+                        <TextBlock Text="Restore Windows &amp; Quit" FontWeight="SemiBold" FontSize="11.5" HorizontalAlignment="Center"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Vertical Hairline Divider -->
+            <Border Grid.Column="1" Background="{DynamicResource GlassDividerBrush}"/>
+
+            <!-- Right Detail Content Pane -->
+            <Grid Grid.Column="2" Margin="22,18,22,18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,14" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                    <TextBlock x:Name="PageTitleText"
+                               Text="General &amp; Liquid Glass"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource GlassTextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right"
+                            Style="{StaticResource GlassPillButton}"
+                            Padding="9,4"
+                            Click="Close_Click"
+                            ToolTip="Close Settings">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11"/>
+                    </Button>
+                </Grid>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <!-- PAGE 1: GENERAL & GLASS -->
+                        <StackPanel x:Name="GeneralPage" Visibility="Visible">
+                            <TextBlock Text="SHELL MODULES" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Floating Dock" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="EnableDockCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Top Bar &amp; Quick Settings (All Displays)" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="EnableMenuBarCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Hide Native Windows Taskbar" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Automatically restored on exit or Ctrl+Alt+Shift+R" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="HideTaskbarCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Launch OneUI at Windows Startup" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Starts automatically when you sign in to Windows" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="LaunchAtStartupCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="LIQUID GLASS MATERIAL" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Glass Mode" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Dark Obsidian" Style="{StaticResource GlassPillButton}" Click="DarkTheme_Click" Margin="0,0,6,0"/>
+                                            <Button Content="Light Pearl" Style="{StaticResource GlassPillButton}" Click="LightTheme_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Glass Tint Density" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="TintOpacitySlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0.10" Maximum="0.68" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="DOCK &amp; ANIMATIONS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Icon Size" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="DockSizeSlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="36" Maximum="60" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Wave Magnification" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="DockMagSlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="1.0" Maximum="1.45" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Auto-Hide Dock" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="DockAutoHideCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- PAGE 2: LIVE WALLPAPER -->
+                        <StackPanel x:Name="WallpaperPage" Visibility="Collapsed">
+                            <TextBlock Text="LIVE WALLPAPER ENGINE" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Enable Live Wallpaper (All Displays)" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Renders behind your desktop icons and pauses during fullscreen apps" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableWallpaperCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Auto-Pause When Fullscreen App Is Running" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="PauseFullscreenCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="BUILT-IN ANIMATED PRESETS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <UniformGrid Columns="3" Margin="0,0,0,14">
+                                <Button Style="{StaticResource GlassTileButton}" Margin="0,0,6,0" Padding="10" Click="PresetAurora_Click">
+                                    <StackPanel>
+                                        <Border Height="58" CornerRadius="8" Margin="0,0,0,8">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#FF00E5FF" Offset="0"/>
+                                                    <GradientStop Color="#FF0A84FF" Offset="0.5"/>
+                                                    <GradientStop Color="#FF30D158" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock Text="Aurora Borealis" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource GlassTileButton}" Margin="3,0" Padding="10" Click="PresetLiquidMesh_Click">
+                                    <StackPanel>
+                                        <Border Height="58" CornerRadius="8" Margin="0,0,0,8">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#FF0A84FF" Offset="0"/>
+                                                    <GradientStop Color="#FF5E5CE6" Offset="0.5"/>
+                                                    <GradientStop Color="#FFFF375F" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock Text="Liquid Mesh" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource GlassTileButton}" Margin="6,0,0,0" Padding="10" Click="PresetNebula_Click">
+                                    <StackPanel>
+                                        <Border Height="58" CornerRadius="8" Margin="0,0,0,8">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#FFFF9500" Offset="0"/>
+                                                    <GradientStop Color="#FFFF375F" Offset="0.5"/>
+                                                    <GradientStop Color="#FFBF5AF2" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock Text="Sunset Nebula" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </UniformGrid>
+
+                            <TextBlock Text="CUSTOM VIDEO WALLPAPER" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Loop Any Local Video (.mp4, .mov, .wmv, .mkv)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                        <TextBlock x:Name="WallpaperVideoPathText" Text="No video selected" FontSize="11" Foreground="{DynamicResource GlassTextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource GlassTileButton}"
+                                            Background="#550A84FF"
+                                            Padding="14,8"
+                                            Click="BrowseVideo_Click">
+                                        <TextBlock Text="Browse Video..." FontWeight="SemiBold" FontSize="12"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- PAGE 3: DESKTOP WIDGETS -->
+                        <StackPanel x:Name="WidgetsPage" Visibility="Collapsed">
+                            <TextBlock Text="LIQUID GLASS DESKTOP WIDGETS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Clock &amp; Date Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Large translucent desktop clock with date and seconds" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableClockWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="System Monitor Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Live CPU, Memory, and Battery gauges on your desktop" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableSystemWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Quick Notes Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Editable Liquid Glass sticky note with auto-save" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableNotesWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Now Playing Media Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Desktop play/pause/skip controls for system media" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableMediaWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Weather Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Live local temperature, conditions, and 3-day forecast" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableWeatherWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Calendar Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Always-visible monthly calendar on your desktop" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableCalendarWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Reminders Widget" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Interactive to-do checklist with auto-save" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableReminderWidgetCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Weather Widget Settings -->
+                            <TextBlock Text="WEATHER WIDGET" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="Location City" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Leave blank to auto-detect" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Background="#1CFFFFFF" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="7" Padding="8,4" VerticalAlignment="Center">
+                                            <TextBox x:Name="WeatherCityBox" Background="Transparent" BorderThickness="0"
+                                                     Foreground="{DynamicResource GlassTextPrimaryBrush}" CaretBrush="{DynamicResource GlassTextPrimaryBrush}"
+                                                     FontSize="12.5" VerticalContentAlignment="Center"/>
+                                        </Border>
+                                        <Button Grid.Column="2" Content="Apply" Style="{StaticResource GlassPillButton}" Margin="6,0,0,0" VerticalAlignment="Center" Click="ApplyWeatherCity_Click"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Use Fahrenheit (°F)" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="WeatherFahrenheitCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Clock Widget Full Customization Card -->
+                            <TextBlock Text="CLOCK WIDGET CUSTOMIZATION" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <!-- Style -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Clock Style" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Digital" Style="{StaticResource GlassPillButton}" Click="ClockStyle_Click" Tag="Digital" Margin="0,0,4,0"/>
+                                            <Button Content="Stacked" Style="{StaticResource GlassPillButton}" Click="ClockStyle_Click" Tag="Stacked" Margin="0,0,4,0"/>
+                                            <Button Content="Analog" Style="{StaticResource GlassPillButton}" Click="ClockStyle_Click" Tag="Analog"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Background Style -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Surface" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Glass" Style="{StaticResource GlassPillButton}" Click="ClockBg_Click" Tag="Glass" Margin="0,0,4,0"/>
+                                            <Button Content="Minimal" Style="{StaticResource GlassPillButton}" Click="ClockBg_Click" Tag="Minimal" Margin="0,0,4,0"/>
+                                            <Button Content="Transparent" Style="{StaticResource GlassPillButton}" Click="ClockBg_Click" Tag="Transparent"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Font Family -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Font" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Clean" Style="{StaticResource GlassPillButton}" Click="ClockFont_Click" Tag="Segoe UI Variable Display" Margin="0,0,4,0"/>
+                                            <Button Content="Mono" Style="{StaticResource GlassPillButton}" Click="ClockFont_Click" Tag="Cascadia Mono" Margin="0,0,4,0"/>
+                                            <Button Content="Serif" Style="{StaticResource GlassPillButton}" Click="ClockFont_Click" Tag="Georgia" Margin="0,0,4,0"/>
+                                            <Button Content="Modern" Style="{StaticResource GlassPillButton}" Click="ClockFont_Click" Tag="Bahnschrift"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Font Weight -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Weight" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Light" Style="{StaticResource GlassPillButton}" Click="ClockWeight_Click" Tag="Light" Margin="0,0,4,0"/>
+                                            <Button Content="Regular" Style="{StaticResource GlassPillButton}" Click="ClockWeight_Click" Tag="Normal" Margin="0,0,4,0"/>
+                                            <Button Content="SemiBold" Style="{StaticResource GlassPillButton}" Click="ClockWeight_Click" Tag="SemiBold" Margin="0,0,4,0"/>
+                                            <Button Content="Bold" Style="{StaticResource GlassPillButton}" Click="ClockWeight_Click" Tag="Bold"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Size Slider -->
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Clock Size" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="ClockSizeSlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="28" Maximum="88" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Color Swatches -->
+                                    <Grid Margin="0,5">
+                                        <TextBlock Text="Clock Color" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockColor_Click" Tag="#FAFFFFFF" ToolTip="White">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FAFFFFFF" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockColor_Click" Tag="#FFB8E6FF" ToolTip="Ice Blue">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFB8E6FF" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockColor_Click" Tag="#FFFFD60A" ToolTip="Gold">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFFFD60A" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockColor_Click" Tag="#FF30D158" ToolTip="Mint">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FF30D158" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockColor_Click" Tag="#FFFF6482" ToolTip="Coral">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFFF6482" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Cursor="Hand" Click="ClockColor_Click" Tag="#FF181A24" ToolTip="Obsidian Dark">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FF181A24" Stroke="#88FFFFFF" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Alignment -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Alignment" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Left" Style="{StaticResource GlassPillButton}" Click="ClockAlign_Click" Tag="Left" Margin="0,0,4,0"/>
+                                            <Button Content="Center" Style="{StaticResource GlassPillButton}" Click="ClockAlign_Click" Tag="Center" Margin="0,0,4,0"/>
+                                            <Button Content="Right" Style="{StaticResource GlassPillButton}" Click="ClockAlign_Click" Tag="Right"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Date Format -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Date Format" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Full" Style="{StaticResource GlassPillButton}" Click="ClockDateFmt_Click" Tag="dddd, MMMM d" Margin="0,0,4,0"/>
+                                            <Button Content="Short" Style="{StaticResource GlassPillButton}" Click="ClockDateFmt_Click" Tag="ddd, MMM d" Margin="0,0,4,0"/>
+                                            <Button Content="Numeric" Style="{StaticResource GlassPillButton}" Click="ClockDateFmt_Click" Tag="yyyy-MM-dd"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Toggles: 24h, Seconds, Date -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="24-Hour Format" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="Clock24hCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Show Seconds" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="ClockSecondsCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Show Date" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="ClockDateCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+
+                                    <!-- Shadow Customization -->
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Clock Shadow / Glow" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="ClockShadowCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,5">
+                                        <TextBlock Text="Shadow Color" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FF000000" ToolTip="Black Shadow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FF000000" Stroke="#88FFFFFF" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FFFFFFFF" ToolTip="White Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFFFFFFF" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FF00E5FF" ToolTip="Cyan Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FF00E5FF" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FF0A84FF" ToolTip="Blue Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FF0A84FF" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FFBF5AF2" ToolTip="Purple Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFBF5AF2" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Margin="0,0,7,0" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FFFFD60A" ToolTip="Gold Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFFFD60A" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Width="22" Height="22" Cursor="Hand" Click="ClockShadowColor_Click" Tag="#FFFF375F" ToolTip="Coral Glow">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#FFFF375F" Stroke="#66000000" StrokeThickness="1"/></ControlTemplate></Button.Template>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Shadow Blur" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="ClockShadowBlurSlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0" Maximum="36" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Shadow Depth" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="ClockShadowDepthSlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0" Maximum="14" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Shadow Opacity" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="ClockShadowOpacitySlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0" Maximum="1" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10">
+                                <Grid>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Drag any widget on your desktop to reposition it" FontSize="12.5" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                        <TextBlock Text="Right-click a widget to hide it or reset its position" FontSize="11" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Style="{StaticResource GlassTileButton}" Padding="12,7" Click="ResetWidgets_Click">
+                                        <TextBlock Text="Reset Positions" FontSize="12" FontWeight="Medium"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

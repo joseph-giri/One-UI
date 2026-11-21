@@ -1,0 +1,91 @@
+<Window x:Class="OneUI.App.Views.TrafficLightOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Traffic Lights"
+        Width="156"
+        Height="32"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Background="Transparent"
+        MouseEnter="Overlay_MouseEnter"
+        MouseLeave="Overlay_MouseLeave">
+
+    <!-- 156x32 titlebar cover: left 18px smoothly feathers from transparent to the exact titlebar color -->
+    <Border x:Name="CoverBorder"
+            CornerRadius="0,7,0,0"
+            Padding="0,0,15,0">
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
+            <!-- Red: Close (macOS order: Red · Yellow · Green) -->
+            <Button Width="12" Height="12" Margin="0,0,8,0" Cursor="Hand" Click="Close_Click" ToolTip="Close">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Stroke="#3A000000" StrokeThickness="0.5">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush GradientOrigin="0.35,0.28">
+                                        <GradientStop Color="#FFFF7E77" Offset="0"/>
+                                        <GradientStop Color="#FFFF5F57" Offset="0.6"/>
+                                        <GradientStop Color="#FFE0443E" Offset="1"/>
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <TextBlock Text="×" FontSize="9" FontWeight="Bold" Foreground="#B8000000"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"
+                                       Visibility="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <!-- Yellow: Minimize -->
+            <Button Width="12" Height="12" Margin="0,0,8,0" Cursor="Hand" Click="Minimize_Click" ToolTip="Minimize">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Stroke="#3A000000" StrokeThickness="0.5">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush GradientOrigin="0.35,0.28">
+                                        <GradientStop Color="#FFFFD566" Offset="0"/>
+                                        <GradientStop Color="#FFFEBC2E" Offset="0.6"/>
+                                        <GradientStop Color="#FFDEA123" Offset="1"/>
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <TextBlock Text="−" FontSize="9" FontWeight="Bold" Foreground="#B8000000"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"
+                                       Visibility="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <!-- Green: Maximize / Restore -->
+            <Button Width="12" Height="12" Cursor="Hand" Click="Maximize_Click" ToolTip="Maximize / Restore">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Stroke="#3A000000" StrokeThickness="0.5">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush GradientOrigin="0.35,0.28">
+                                        <GradientStop Color="#FF5CE26F" Offset="0"/>
+                                        <GradientStop Color="#FF28C840" Offset="0.6"/>
+                                        <GradientStop Color="#FF1AAB29" Offset="1"/>
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <TextBlock Text="+" FontSize="9" FontWeight="Bold" Foreground="#B8000000"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"
+                                       Visibility="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </StackPanel>
+    </Border>
+</Window>

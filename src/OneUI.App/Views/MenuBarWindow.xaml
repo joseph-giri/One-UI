@@ -1,0 +1,214 @@
+<Window x:Class="OneUI.App.Views.MenuBarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OneUI Menu Bar"
+        Height="28"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource GlassSurfaceBrush}"
+            BorderBrush="{DynamicResource GlassDividerBrush}"
+            BorderThickness="0,0,0,1">
+        <Grid Margin="12,0">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#22FFFFFF" Offset="0"/>
+                    <GradientStop Color="#00FFFFFF" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: System Emblem + Integrated Traffic Lights + Active App + Dynamic Window Switcher Menu -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="SystemMenuButton"
+                        Style="{StaticResource GlassPillButton}"
+                        Padding="8,4"
+                        Click="SystemMenuButton_Click"
+                        ToolTip="Start Menu (Right-click for OneUI System Menu)">
+                    <Grid Width="13" Height="13">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="1.5"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1.5"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource GlassTextPrimaryBrush}" CornerRadius="1.2"/>
+                        <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource GlassTextPrimaryBrush}" CornerRadius="1.2"/>
+                        <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource GlassTextPrimaryBrush}" CornerRadius="1.2"/>
+                        <Border Grid.Row="2" Grid.Column="2" Background="{DynamicResource GlassTextPrimaryBrush}" CornerRadius="1.2"/>
+                    </Grid>
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="SystemContextMenu">
+                            <MenuItem Header="About OneUI" Click="About_Click"/>
+                            <Separator/>
+                            <MenuItem Header="OneUI Settings..." Click="OpenSettings_Click"/>
+                            <MenuItem Header="Windows Settings..." Click="OpenWindowsSettings_Click"/>
+                            <MenuItem Header="Task Manager" Click="OpenTaskManager_Click"/>
+                            <MenuItem Header="Show Desktop (Win+D)" Click="ShowDesktop_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Toggle Windows Taskbar" Click="ToggleTaskbar_Click"/>
+                            <MenuItem Header="Lock Screen" Click="Lock_Click"/>
+                            <MenuItem Header="Sleep" Click="Sleep_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Restore Windows UI &amp; Quit" Click="Quit_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+
+                <!-- Active Application Badge (Icon + Bold App Name) -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,8,0">
+                    <Image x:Name="ActiveAppIcon"
+                           Width="15"
+                           Height="15"
+                           Margin="0,0,6,0"
+                           VerticalAlignment="Center"
+                           Visibility="Collapsed"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock x:Name="ActiveAppText"
+                               Text="Desktop"
+                               Foreground="{DynamicResource GlassTextPrimaryBrush}"
+                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Dynamic Window Menu (lists all open windows of the active app + Snap + Move Display!) -->
+                <Button x:Name="WindowMenuButton"
+                        Style="{StaticResource GlassPillButton}"
+                        Content="Windows"
+                        Click="WindowMenuButton_Click"
+                        Padding="8,2"
+                        ToolTip="Switch Windows, Snap Left/Right, or Move to Other Display">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="WindowContextMenu"/>
+                    </Button.ContextMenu>
+                </Button>
+
+                <Button Style="{StaticResource GlassPillButton}" Content="File Explorer" Click="OpenExplorer_Click" Padding="8,2"/>
+                <Button Style="{StaticResource GlassPillButton}" Content="Settings" Click="OpenSettings_Click" Padding="8,2"/>
+
+                <Border Width="1" Height="12" Background="{DynamicResource GlassDividerBrush}" Margin="6,0,8,0" VerticalAlignment="Center"/>
+
+                <!-- Muted Active Window Document/Tab Title -->
+                <TextBlock x:Name="ActiveWindowTitleText"
+                           Text=""
+                           Foreground="{DynamicResource GlassTextSecondaryBrush}"
+                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                           FontSize="12"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Right: Search Pill, Notifications, Network, Sound, Visual Battery Gauge, Quick Settings, Clock -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource GlassPillButton}"
+                        Click="Spotlight_Click"
+                        Padding="8,3"
+                        Margin="0,0,2,0"
+                        ToolTip="Quick Search — Apps, Open Windows, Calculator (Alt+Space)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBlock Text="Search" FontSize="11.5" Foreground="{DynamicResource GlassTextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource GlassPillButton}"
+                        Click="Notifications_Click"
+                        Padding="7,3"
+                        ToolTip="Windows Notifications (Win+N)">
+                    <TextBlock Text="&#xEA8F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"/>
+                </Button>
+
+                <Button Style="{StaticResource GlassPillButton}"
+                        Click="Network_Click"
+                        Padding="7,3"
+                        ToolTip="Network Status">
+                    <TextBlock x:Name="NetworkIcon" Text="&#xE701;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"/>
+                </Button>
+
+                <Button Style="{StaticResource GlassPillButton}"
+                        Click="ControlCenter_Click"
+                        Padding="7,3"
+                        ToolTip="Sound &amp; Quick Settings">
+                    <TextBlock x:Name="VolumeIcon" Text="&#xE767;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"/>
+                </Button>
+
+                <!-- Drawn Visual Battery Gauge + Percentage -->
+                <StackPanel x:Name="BatteryPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0">
+                    <TextBlock x:Name="BatteryText"
+                               Text="100%"
+                               Foreground="{DynamicResource GlassTextSecondaryBrush}"
+                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                               FontSize="11.5"
+                               VerticalAlignment="Center"
+                               Margin="0,0,5,0"/>
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="22" Height="11" CornerRadius="3"
+                                BorderBrush="{DynamicResource GlassTextSecondaryBrush}"
+                                BorderThickness="1"
+                                Padding="1.5">
+                            <Border x:Name="BatteryFillBar"
+                                    HorizontalAlignment="Left"
+                                    Width="17"
+                                    CornerRadius="1.5"
+                                    Background="{DynamicResource GlassTextPrimaryBrush}"/>
+                        </Border>
+                        <Border Grid.Column="1" Width="1.8" Height="4.5" CornerRadius="0,1,1,0"
+                                Background="{DynamicResource GlassTextSecondaryBrush}"
+                                VerticalAlignment="Center" Margin="1,0,0,0"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Quick Settings Bento Toggle Icon -->
+                <Button x:Name="ControlCenterButton"
+                        Style="{StaticResource GlassPillButton}"
+                        Click="ControlCenter_Click"
+                        Padding="7,3"
+                        Margin="2,0"
+                        ToolTip="Quick Settings">
+                    <Grid Width="14" Height="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Height="4.5" CornerRadius="2.2" BorderBrush="{DynamicResource GlassTextPrimaryBrush}" BorderThickness="1" VerticalAlignment="Center">
+                            <Ellipse Width="3" Height="3" Fill="{DynamicResource GlassTextPrimaryBrush}" HorizontalAlignment="Right" Margin="0,0,1,0"/>
+                        </Border>
+                        <Border Grid.Row="1" Height="4.5" CornerRadius="2.2" BorderBrush="{DynamicResource GlassTextPrimaryBrush}" BorderThickness="1" VerticalAlignment="Center">
+                            <Ellipse Width="3" Height="3" Fill="{DynamicResource GlassTextPrimaryBrush}" HorizontalAlignment="Left" Margin="1,0,0,0"/>
+                        </Border>
+                    </Grid>
+                </Button>
+
+                <Button Style="{StaticResource GlassPillButton}"
+                        Click="Clock_Click"
+                        Padding="8,2"
+                        Margin="2,0,0,0"
+                        ToolTip="Calendar &amp; Clock">
+                    <TextBlock x:Name="ClockText"
+                               Text="Sat Nov 21  9:15 AM"
+                               Foreground="{DynamicResource GlassTextPrimaryBrush}"
+                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                               FontSize="12"
+                               FontWeight="Medium"
+                               VerticalAlignment="Center"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

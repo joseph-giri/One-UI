@@ -1,0 +1,11 @@
+c:\Users\Joseph\One UI\src\OneUI.Core\bin\Release\net9.0\OneUI.Core.deps.json
+c:\Users\Joseph\One UI\src\OneUI.Core\bin\Release\net9.0\OneUI.Core.dll
+c:\Users\Joseph\One UI\src\OneUI.Core\bin\Release\net9.0\OneUI.Core.pdb
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.AssemblyInfoInputs.cache
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.AssemblyInfo.cs
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.csproj.CoreCompileInputs.cache
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.dll
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\refint\OneUI.Core.dll
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.pdb
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\ref\OneUI.Core.dll

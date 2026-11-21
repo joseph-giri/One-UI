@@ -1,0 +1,80 @@
+<Window x:Class="OneUI.App.Views.CalendarFlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Calendar &amp; Clock"
+        Width="310"
+        SizeToContent="Height"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Background="Transparent"
+        Deactivated="Window_Deactivated"
+        KeyDown="Window_KeyDown">
+
+    <Border x:Name="RootCard"
+            Background="{DynamicResource GlassSurfaceBrush}"
+            BorderBrush="{DynamicResource LiquidGlassRimBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="16">
+        <StackPanel>
+            <!-- Live Digital Clock Header -->
+            <TextBlock x:Name="BigTimeText"
+                       Text="9:40:12 AM"
+                       FontFamily="Segoe UI Variable Display, Segoe UI"
+                       FontSize="28"
+                       FontWeight="Light"
+                       Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+            <TextBlock x:Name="FullDateText"
+                       Text="Saturday, November 21, 2026"
+                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                       FontSize="12.5"
+                       Foreground="{DynamicResource GlassTextSecondaryBrush}"
+                       Margin="0,2,0,14"/>
+
+            <!-- Month Navigation -->
+            <Border Background="{DynamicResource GlassCardBrush}"
+                    BorderBrush="{DynamicResource LiquidGlassRimBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="12,10">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock x:Name="MonthYearText"
+                                   Text="November 2026"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource GlassTextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource GlassPillButton}" Content="‹" Padding="8,1" Click="PrevMonth_Click"/>
+                            <Button Style="{StaticResource GlassPillButton}" Content="Today" Padding="7,1" FontSize="11" Click="Today_Click"/>
+                            <Button Style="{StaticResource GlassPillButton}" Content="›" Padding="8,1" Click="NextMonth_Click"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Weekday Headers -->
+                    <UniformGrid Columns="7" Margin="0,0,0,6">
+                        <TextBlock Text="Su" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="Mo" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="Tu" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="We" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="Th" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="Fr" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                        <TextBlock Text="Sa" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                    </UniformGrid>
+
+                    <!-- Days Grid -->
+                    <UniformGrid x:Name="DaysGrid" Columns="7"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Footer Quick Link -->
+            <Button Style="{StaticResource GlassPillButton}"
+                    HorizontalAlignment="Right"
+                    Margin="0,10,0,0"
+                    Click="DateTimeSettings_Click">
+                <TextBlock Text="Date &amp; Time Settings ›" FontSize="11.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+            </Button>
+        </StackPanel>
+    </Border>
+</Window>
