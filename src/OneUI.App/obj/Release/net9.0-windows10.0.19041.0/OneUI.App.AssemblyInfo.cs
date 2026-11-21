@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OneUI.App")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+07d4de3a3df6721b5499b0875910e61481fa369b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e83361ded0d45a49782150dd1507fbd8a9d08b23")]
 [assembly: System.Reflection.AssemblyProductAttribute("OneUI.App")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OneUI.App")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

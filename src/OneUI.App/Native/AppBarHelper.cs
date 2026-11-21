@@ -42,15 +42,22 @@ public static class AppBarHelper
 
         int barHeightPx = (int)Math.Round(heightDip * monitor.DpiScaleY);
 
-        // Position the Top Bar window at the exact top edge of this monitor
-        Win32Api.SetWindowPos(
-            hwnd,
-            nint.Zero,
-            monitor.PhysicalLeft,
-            monitor.PhysicalTop,
-            monitor.PhysicalWidth,
-            barHeightPx,
-            Win32Api.SWP_NOZORDER | Win32Api.SWP_NOACTIVATE);
+        // Position the Top Bar window only if its physical bounds differ (avoids DWM flicker)
+        if (!Win32Api.GetWindowRect(hwnd, out var curRect) ||
+            curRect.Left != monitor.PhysicalLeft ||
+            curRect.Top != monitor.PhysicalTop ||
+            (curRect.Right - curRect.Left) != monitor.PhysicalWidth ||
+            (curRect.Bottom - curRect.Top) != barHeightPx)
+        {
+            Win32Api.SetWindowPos(
+                hwnd,
+                nint.Zero,
+                monitor.PhysicalLeft,
+                monitor.PhysicalTop,
+                monitor.PhysicalWidth,
+                barHeightPx,
+                Win32Api.SWP_NOZORDER | Win32Api.SWP_NOACTIVATE);
+        }
 
         // Save original monitor work area once so we can restore it cleanly on exit
         var origWork = GetMonitorWorkArea(monitor);

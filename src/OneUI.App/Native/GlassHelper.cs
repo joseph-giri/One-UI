@@ -12,6 +12,8 @@ namespace OneUI.App.Native;
 /// </summary>
 public static class GlassHelper
 {
+    private static readonly Dictionary<nint, (bool IsDark, bool Rounded, bool Blur)> AppliedState = new();
+
     public static void PrepareLiquidGlass(Window window, bool roundedCorners = true, bool isToolWindow = true, bool noActivate = false)
     {
         window.WindowStyle = WindowStyle.None;
@@ -32,14 +34,36 @@ public static class GlassHelper
             var hwnd = new WindowInteropHelper(window).Handle;
             if (hwnd == nint.Zero) return;
 
+            // Suppress Win32 background erase (WM_ERASEBKGND = 0x0014) to prevent white/black DWM flash on redraws
+            HwndSource.FromHwnd(hwnd)?.AddHook(GlassWndProc);
+
             ApplyWindowStyles(hwnd, isToolWindow, noActivate);
             ApplyDwmGlass(hwnd, isDark: true, roundedCorners: roundedCorners);
         };
+
+        window.Closed += (_, _) =>
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd != nint.Zero) AppliedState.Remove(hwnd);
+        };
+    }
+
+    private static nint GlassWndProc(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == 0x0014) // WM_ERASEBKGND
+        {
+            handled = true;
+            return new nint(1);
+        }
+        return nint.Zero;
     }
 
     public static void ApplyDwmGlass(nint hwnd, bool isDark, bool roundedCorners = true)
     {
         if (hwnd == nint.Zero) return;
+        var next = (isDark, roundedCorners, true);
+        if (AppliedState.TryGetValue(hwnd, out var prev) && prev == next) return;
+        AppliedState[hwnd] = next;
 
         int darkMode = isDark ? 1 : 0;
         _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
@@ -88,6 +112,10 @@ public static class GlassHelper
         }
         else
         {
+            var next = (isDark, roundedCorners, false);
+            if (AppliedState.TryGetValue(hwnd, out var prev) && prev == next) return;
+            AppliedState[hwnd] = next;
+
             int darkMode = isDark ? 1 : 0;
             _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
             int none = Win32Api.DWMSBT_NONE;

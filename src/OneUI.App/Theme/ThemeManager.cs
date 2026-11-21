@@ -11,9 +11,9 @@ public static class ThemeManager
     {
         bool isDark = !string.Equals(settings.GlassTheme, "Light", StringComparison.OrdinalIgnoreCase);
         bool blurEnabled = settings.EnableGlassBlur;
-        // Allow full transparency (0%) up to deep translucent glass (75%)
+        // Keep minimum alpha >= 2 so DWM composition never flashes an uninitialized 0-alpha frame
         double clampedOpacity = Math.Clamp(settings.GlassTintOpacity, 0.0, 0.75);
-        byte alpha = (byte)Math.Clamp((int)Math.Round(clampedOpacity * 255), 0, 192);
+        byte alpha = (byte)Math.Clamp((int)Math.Round(clampedOpacity * 255), 2, 192);
 
         var res = System.Windows.Application.Current.Resources;
 

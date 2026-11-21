@@ -10,8 +10,14 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>OneUI.App</RootNamespace>
     <AssemblyName>OneUI.App</AssemblyName>
+    <ApplicationIcon>Assets\OneUI.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\OneUI.png" />
+    <Resource Include="Assets\OneUI.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Remove="System.Drawing" />

@@ -35,6 +35,7 @@ public partial class App : System.Windows.Application
     private ControlCenterWindow? _controlCenter;
     private CalendarFlyoutWindow? _calendarFlyout;
     private TopBarPopoverWindow? _topBarPopover;
+    private NowPlayingHoverPopup? _nowPlayingHoverPopup;
     private StartMenuWindow? _startMenu;
     private DockWindow? _dock;
     private SpotlightWindow? _spotlight;
@@ -169,9 +170,17 @@ public partial class App : System.Windows.Application
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("Restore Native Windows UI & Quit", null, (_, _) => SafeQuit());
 
+        Icon appIcon = SystemIcons.Application;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Environment.ProcessPath) && File.Exists(Environment.ProcessPath))
+                appIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath) ?? SystemIcons.Application;
+        }
+        catch { }
+
         _trayIcon = new WinForms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = appIcon,
             Text = "OneUI — Liquid Glass (Alt+Space to Search)",
             Visible = true,
             ContextMenuStrip = menu
@@ -183,6 +192,7 @@ public partial class App : System.Windows.Application
     {
         _controlCenter = new ControlCenterWindow(_status, _media, _settings);
         _calendarFlyout = new CalendarFlyoutWindow();
+        _nowPlayingHoverPopup = new NowPlayingHoverPopup(_media);
         _topBarPopover = new TopBarPopoverWindow(_settings, _focusTimer, _clipboard);
         _topBarPopover.DataChanged += () =>
         {
@@ -338,6 +348,7 @@ public partial class App : System.Windows.Application
             bar.ControlCenterRequested += mon => _controlCenter?.ToggleOpen(mon);
             bar.CalendarRequested += mon => _calendarFlyout?.ToggleOpen(mon);
             bar.PopoverRequested += (mode, mon) => _topBarPopover?.ToggleOpen(mode, mon);
+            bar.NowPlayingHoverChanged += (hover, xDip, mon) => _nowPlayingHoverPopup?.OnPillHoverChanged(hover, xDip, mon);
             bar.ColorPickerRequested += LaunchColorPicker;
             bar.SettingsRequested += ShowSettings;
             bar.ToggleTaskbarRequested += ToggleTaskbar;

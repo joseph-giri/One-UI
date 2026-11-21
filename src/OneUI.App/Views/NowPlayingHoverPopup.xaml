@@ -1,0 +1,66 @@
+<Window x:Class="OneUI.App.Views.NowPlayingHoverPopup"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Now Playing"
+        Width="272"
+        SizeToContent="Height"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Background="Transparent"
+        MouseEnter="Popup_MouseEnter"
+        MouseLeave="Popup_MouseLeave">
+
+    <Border x:Name="RootCard"
+            Background="{DynamicResource GlassSurfaceBrush}"
+            BorderBrush="{DynamicResource LiquidGlassRimBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="12">
+        <StackPanel>
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Album Artwork -->
+                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="10" Margin="0,0,11,0" ClipToBounds="True">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#FFFF375F" Offset="0"/>
+                            <GradientStop Color="#FFBF5AF2" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <TextBlock x:Name="FallbackIcon" Text="&#xE8D6;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image x:Name="AlbumArtImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Grid>
+                </Border>
+
+                <!-- Track Title & Artist -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="NOW PLAYING" FontSize="9.5" FontWeight="SemiBold" Foreground="#FF64D2FF" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="TrackTitleText" Text="Nothing Playing" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource GlassTextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="TrackArtistText" Text="" FontSize="11"
+                               Foreground="{DynamicResource GlassTextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Playback Controls -->
+            <UniformGrid Columns="3">
+                <Button Style="{StaticResource GlassTileButton}" Padding="8,7" Margin="0,0,4,0" Click="Prev_Click" ToolTip="Previous">
+                    <TextBlock Text="&#xE892;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                </Button>
+                <Button Style="{StaticResource GlassTileButton}" Background="#450A84FF" Padding="8,7" Margin="2,0" Click="PlayPause_Click" ToolTip="Play / Pause">
+                    <TextBlock x:Name="PlayPauseIcon" Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"/>
+                </Button>
+                <Button Style="{StaticResource GlassTileButton}" Padding="8,7" Margin="4,0,0,0" Click="Next_Click" ToolTip="Next">
+                    <TextBlock Text="&#xE893;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14"/>
+                </Button>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</Window>

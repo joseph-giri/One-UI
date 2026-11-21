@@ -115,7 +115,9 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <!-- Mini Now-Playing Pill -->
                 <Border x:Name="NowPlayingPill" Visibility="Collapsed"
-                        Background="#1AFFFFFF" CornerRadius="10" Padding="6,1" Margin="0,0,6,0" VerticalAlignment="Center">
+                        Background="#1AFFFFFF" CornerRadius="10" Padding="6,1" Margin="0,0,6,0" VerticalAlignment="Center"
+                        MouseEnter="NowPlayingPill_MouseEnter"
+                        MouseLeave="NowPlayingPill_MouseLeave">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource GlassPillButton}" Padding="4,1" Click="MiniMediaPlayPause_Click" ToolTip="Play / Pause">
                             <TextBlock x:Name="MiniMediaPlayIcon" Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10.5"/>
@@ -171,6 +173,7 @@
                         Margin="0,0,2,0"
                         ToolTip="Live CPU · RAM · Network (Click for Task Manager)">
                     <TextBlock x:Name="TelemetryPillText" Text="CPU 0% · RAM 0%"
+                               MinWidth="128" TextAlignment="Right"
                                FontFamily="Cascadia Mono, Consolas, Segoe UI" FontSize="10.5"
                                Foreground="{DynamicResource GlassTextSecondaryBrush}" VerticalAlignment="Center"/>
                 </Button>

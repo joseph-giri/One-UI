@@ -10,6 +10,19 @@ namespace OneUI.App.Views;
 
 public partial class MenuBarWindow : Window
 {
+    private static readonly SolidColorBrush BrushGreen = CreateFrozen(48, 209, 88);
+    private static readonly SolidColorBrush BrushRed = CreateFrozen(255, 69, 58);
+    private static readonly SolidColorBrush BrushBlue = CreateFrozen(10, 132, 255);
+    private static readonly SolidColorBrush BrushSky = CreateFrozen(100, 210, 255);
+    private static readonly SolidColorBrush BrushAmber = CreateFrozen(255, 159, 10);
+
+    private static SolidColorBrush CreateFrozen(byte r, byte g, byte b)
+    {
+        var br = new SolidColorBrush(Color.FromRgb(r, g, b));
+        br.Freeze();
+        return br;
+    }
+
     private readonly SystemStatusService _statusService;
     private readonly AppDiscoveryService? _discovery;
     private readonly WindowTracker? _tracker;
@@ -23,15 +36,18 @@ public partial class MenuBarWindow : Window
     private nint _lastActiveHwnd;
     private string _lastActiveProcess = string.Empty;
     private int _tickCount;
+    private int _fullscreenDebounce;
     private bool _hiddenForFullscreen;
     private bool _userEnabled = true;
     private bool _taskbarHidden = true;
+    private int _lastBatteryColorState = -1;
 
     public event Action<MonitorBounds>? StartMenuRequested;
     public event Action<MonitorBounds>? SpotlightRequested;
     public event Action<MonitorBounds>? ControlCenterRequested;
     public event Action<MonitorBounds>? CalendarRequested;
     public event Action<TopBarPopoverMode, MonitorBounds>? PopoverRequested;
+    public event Action<bool, double, MonitorBounds>? NowPlayingHoverChanged;
     public event Action? ColorPickerRequested;
     public event Action? SettingsRequested;
     public event Action? ToggleTaskbarRequested;
@@ -126,16 +142,26 @@ public partial class MenuBarWindow : Window
         if (!_userEnabled) return;
 
         bool isFs = WindowTracker.IsMonitorFullscreen(_monitor);
-        if (isFs && !_hiddenForFullscreen)
+        if (isFs != _hiddenForFullscreen)
         {
-            _hiddenForFullscreen = true;
-            if (IsVisible) Hide();
+            _fullscreenDebounce++;
+            if (_fullscreenDebounce < 2) return; // Require 2 consecutive ticks (~440ms) to avoid transient hide/show flicker
+            _fullscreenDebounce = 0;
+
+            _hiddenForFullscreen = isFs;
+            if (isFs)
+            {
+                if (IsVisible) Hide();
+            }
+            else
+            {
+                Show();
+                PositionAtTop();
+            }
         }
-        else if (!isFs && _hiddenForFullscreen)
+        else
         {
-            _hiddenForFullscreen = false;
-            Show();
-            PositionAtTop();
+            _fullscreenDebounce = 0;
         }
     }
 
@@ -223,45 +249,61 @@ public partial class MenuBarWindow : Window
 
     private void RefreshStatus()
     {
-        ClockText.Text = DateTime.Now.ToString("ddd MMM d   h:mm tt");
+        string clockStr = DateTime.Now.ToString("ddd MMM d   h:mm tt");
+        if (ClockText.Text != clockStr)
+            ClockText.Text = clockStr;
 
-        // Self-healing work area check every 4 seconds (skip while a fullscreen app is active on this monitor)
+        // Self-healing work area check every 8 seconds (skip while a fullscreen app is active on this monitor)
         _tickCount++;
-        if (_tickCount % 4 == 0 && IsVisible && !_hiddenForFullscreen)
+        if (_tickCount % 8 == 0 && IsVisible && !_hiddenForFullscreen)
         {
             var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             if (hwnd != nint.Zero)
                 AppBarHelper.EnsureWorkAreaReserved(hwnd, _monitor, heightDip: 28, taskbarHidden: _taskbarHidden);
         }
 
-        var net = _statusService.GetNetworkStatus();
-        NetworkIcon.Text = net.IsConnected ? "\uE701" : "\uEB55";
-
-        bool muted = _statusService.GetIsMuted();
-        float vol = _statusService.GetMasterVolume();
-        VolumeIcon.Text = muted || vol < 0.01f ? "\uE74F" : vol < 0.5f ? "\uE993" : "\uE767";
-
-        var bat = _statusService.GetBatteryStatus();
-        if (bat.HasBattery)
-        {
-            BatteryPanel.Visibility = Visibility.Visible;
-            BatteryText.Text = $"{bat.Percent}%";
-            BatteryFillBar.Width = Math.Clamp(17.0 * (bat.Percent / 100.0), 2.0, 17.0);
-            if (bat.IsCharging)
-                BatteryFillBar.Background = new SolidColorBrush(Color.FromRgb(48, 209, 88));
-            else if (bat.Percent <= 20)
-                BatteryFillBar.Background = new SolidColorBrush(Color.FromRgb(255, 69, 58));
-            else
-                BatteryFillBar.SetResourceReference(Border.BackgroundProperty, "GlassTextPrimaryBrush");
-        }
-        else
-        {
-            BatteryPanel.Visibility = Visibility.Collapsed;
-        }
-
-        // Update productivity telemetry & reminder countdown every 2 seconds
+        // Network, volume, and battery only need polling every 2 seconds and only mutate UI when changed
         if (_tickCount % 2 == 0)
         {
+            var net = _statusService.GetNetworkStatus();
+            string netGlyph = net.IsConnected ? "\uE701" : "\uEB55";
+            if (NetworkIcon.Text != netGlyph)
+                NetworkIcon.Text = netGlyph;
+
+            bool muted = _statusService.GetIsMuted();
+            float vol = _statusService.GetMasterVolume();
+            string volGlyph = muted || vol < 0.01f ? "\uE74F" : vol < 0.5f ? "\uE993" : "\uE767";
+            if (VolumeIcon.Text != volGlyph)
+                VolumeIcon.Text = volGlyph;
+
+            var bat = _statusService.GetBatteryStatus();
+            if (bat.HasBattery)
+            {
+                if (BatteryPanel.Visibility != Visibility.Visible)
+                    BatteryPanel.Visibility = Visibility.Visible;
+
+                string batStr = $"{bat.Percent}%";
+                if (BatteryText.Text != batStr)
+                    BatteryText.Text = batStr;
+
+                double fillW = Math.Round(Math.Clamp(17.0 * (bat.Percent / 100.0), 2.0, 17.0), 1);
+                if (Math.Abs(BatteryFillBar.Width - fillW) > 0.2)
+                    BatteryFillBar.Width = fillW;
+
+                int colorState = bat.IsCharging ? 1 : bat.Percent <= 20 ? 2 : 0;
+                if (colorState != _lastBatteryColorState)
+                {
+                    _lastBatteryColorState = colorState;
+                    if (colorState == 1) BatteryFillBar.Background = BrushGreen;
+                    else if (colorState == 2) BatteryFillBar.Background = BrushRed;
+                    else BatteryFillBar.SetResourceReference(Border.BackgroundProperty, "GlassTextPrimaryBrush");
+                }
+            }
+            else if (BatteryPanel.Visibility != Visibility.Collapsed)
+            {
+                BatteryPanel.Visibility = Visibility.Collapsed;
+            }
+
             if (_settings?.TopBarShowTelemetry == true)
             {
                 var t = _statusService.GetTelemetry();
@@ -269,7 +311,9 @@ public partial class MenuBarWindow : Window
                 string speedStr = netSpeed.DownloadBytesPerSec >= 1024
                     ? $" · ↓{SystemStatusService.FormatSpeedCompact(netSpeed.DownloadBytesPerSec)}"
                     : "";
-                TelemetryPillText.Text = $"CPU {t.CpuPercent}% · RAM {t.RamPercent}%{speedStr}";
+                string telStr = $"CPU {t.CpuPercent}% · RAM {t.RamPercent}%{speedStr}";
+                if (TelemetryPillText.Text != telStr)
+                    TelemetryPillText.Text = telStr;
             }
             RefreshReminderPill();
         }
@@ -279,27 +323,35 @@ public partial class MenuBarWindow : Window
     {
         bool hasMedia = !string.IsNullOrWhiteSpace(info.Title) && !string.Equals(info.Title, "Nothing Playing", StringComparison.OrdinalIgnoreCase);
         bool show = (_settings?.TopBarShowNowPlaying ?? true) && hasMedia;
-        NowPlayingPill.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        var vis = show ? Visibility.Visible : Visibility.Collapsed;
+        if (NowPlayingPill.Visibility != vis)
+            NowPlayingPill.Visibility = vis;
         if (!show) return;
-        MiniMediaTitleText.Text = info.Title;
-        MiniMediaPlayIcon.Text = info.IsPlaying ? "\uE769" : "\uE768";
+        if (MiniMediaTitleText.Text != info.Title)
+            MiniMediaTitleText.Text = info.Title;
+        string playGlyph = info.IsPlaying ? "\uE769" : "\uE768";
+        if (MiniMediaPlayIcon.Text != playGlyph)
+            MiniMediaPlayIcon.Text = playGlyph;
     }
 
     private void RefreshFocusPill()
     {
         if (_focusTimer is null) return;
+        string nextText;
+        Brush nextBrush;
         if (_focusTimer.IsRunning)
         {
-            FocusPillText.Text = _focusTimer.FormattedRemaining;
-            FocusPillIcon.Foreground = _focusTimer.Phase == FocusPhase.Break
-                ? new SolidColorBrush(Color.FromRgb(48, 209, 88))
-                : new SolidColorBrush(Color.FromRgb(10, 132, 255));
+            nextText = _focusTimer.FormattedRemaining;
+            nextBrush = _focusTimer.Phase == FocusPhase.Break ? BrushGreen : BrushBlue;
         }
         else
         {
-            FocusPillText.Text = _focusTimer.Phase == FocusPhase.Break ? "Break" : "Focus";
-            FocusPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
+            nextText = _focusTimer.Phase == FocusPhase.Break ? "Break" : "Focus";
+            nextBrush = BrushSky;
         }
+
+        if (FocusPillText.Text != nextText) FocusPillText.Text = nextText;
+        if (!ReferenceEquals(FocusPillIcon.Foreground, nextBrush)) FocusPillIcon.Foreground = nextBrush;
     }
 
     public void RefreshReminderPill()
@@ -311,37 +363,41 @@ public partial class MenuBarWindow : Window
             .OrderBy(r => r.DueAt ?? DateTime.MaxValue)
             .FirstOrDefault();
 
+        string nextText;
+        Brush nextBrush;
         if (next is null)
         {
-            ReminderPillText.Text = "Reminders";
-            ReminderPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
-            return;
-        }
-
-        string title = next.Text.Length > 18 ? next.Text[..18] + "…" : next.Text;
-        if (next.DueAt.HasValue)
-        {
-            var diff = next.DueAt.Value - now;
-            string shortDue = diff.TotalSeconds < -30
-                ? "Overdue"
-                : diff.TotalMinutes < 60
-                    ? $"{Math.Max(1, (int)Math.Ceiling(diff.TotalMinutes))}m"
-                    : diff.TotalHours < 24
-                        ? next.DueAt.Value.ToString("h:mm tt")
-                        : next.DueAt.Value.ToString("ddd");
-
-            ReminderPillText.Text = $"{title} · {shortDue}";
-            ReminderPillIcon.Foreground = diff.TotalSeconds < -30
-                ? new SolidColorBrush(Color.FromRgb(255, 69, 58))
-                : next.RepeatIntervalMinutes is > 0
-                    ? new SolidColorBrush(Color.FromRgb(48, 209, 88))
-                    : new SolidColorBrush(Color.FromRgb(255, 159, 10));
+            nextText = "Reminders";
+            nextBrush = BrushSky;
         }
         else
         {
-            ReminderPillText.Text = title;
-            ReminderPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
+            string title = next.Text.Length > 18 ? next.Text[..18] + "…" : next.Text;
+            if (next.DueAt.HasValue)
+            {
+                var diff = next.DueAt.Value - now;
+                string shortDue = diff.TotalSeconds < -30
+                    ? "Overdue"
+                    : diff.TotalMinutes < 60
+                        ? $"{Math.Max(1, (int)Math.Ceiling(diff.TotalMinutes))}m"
+                        : diff.TotalHours < 24
+                            ? next.DueAt.Value.ToString("h:mm tt")
+                            : next.DueAt.Value.ToString("ddd");
+
+                nextText = $"{title} · {shortDue}";
+                nextBrush = diff.TotalSeconds < -30
+                    ? BrushRed
+                    : next.RepeatIntervalMinutes is > 0 ? BrushGreen : BrushAmber;
+            }
+            else
+            {
+                nextText = title;
+                nextBrush = BrushSky;
+            }
         }
+
+        if (ReminderPillText.Text != nextText) ReminderPillText.Text = nextText;
+        if (!ReferenceEquals(ReminderPillIcon.Foreground, nextBrush)) ReminderPillIcon.Foreground = nextBrush;
     }
 
     private void WindowMenuButton_Click(object sender, RoutedEventArgs e)
@@ -477,6 +533,24 @@ public partial class MenuBarWindow : Window
     }
     private void MiniMediaPlayPause_Click(object sender, RoutedEventArgs e) => _media?.TogglePlayPause();
     private void MiniMediaNext_Click(object sender, RoutedEventArgs e) => _media?.SkipNext();
+
+    private void NowPlayingPill_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        try
+        {
+            var pt = NowPlayingPill.TransformToAncestor(this).Transform(new Point(NowPlayingPill.ActualWidth / 2.0, 0));
+            NowPlayingHoverChanged?.Invoke(true, Left + pt.X, _monitor);
+        }
+        catch
+        {
+            NowPlayingHoverChanged?.Invoke(true, _monitor.LeftDip + _monitor.WidthDip / 2.0, _monitor);
+        }
+    }
+
+    private void NowPlayingPill_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        NowPlayingHoverChanged?.Invoke(false, 0, _monitor);
+    }
     private void OpenSettings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
     private void ToggleTaskbar_Click(object sender, RoutedEventArgs e) => ToggleTaskbarRequested?.Invoke();
     private void Quit_Click(object sender, RoutedEventArgs e) => QuitRequested?.Invoke();
