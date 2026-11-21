@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using OneUI.App.Native;
 using OneUI.Core.Models;
+using OneUI.Core.Services;
 
 namespace OneUI.App.Views;
 
@@ -36,10 +37,12 @@ public partial class DesktopWidgetWindow : Window
     private DateTime _lastWeatherFetchUtc = DateTime.MinValue;
     private WeatherSnapshot? _lastWeatherSnapshot;
     private bool _weatherFetching;
+    private VoiceRecognitionService? _voice;
 
     public event Action? SettingsChanged;
     public event Action<DesktopWidgetKind>? HideRequested;
     public event Action? CustomizeClockRequested;
+    public event Action<ReminderItem>? ReminderDue;
 
     public string WidgetKey => _kind.ToString();
     public bool IsTransparentSurface =>
@@ -135,6 +138,7 @@ public partial class DesktopWidgetWindow : Window
                 DesktopWidgetKind.SystemMonitor => TimeSpan.FromSeconds(2),
                 DesktopWidgetKind.Weather => TimeSpan.FromMinutes(1),
                 DesktopWidgetKind.Calendar => TimeSpan.FromMinutes(1),
+                DesktopWidgetKind.Reminder => TimeSpan.FromSeconds(15),
                 _ => TimeSpan.FromSeconds(30)
             }
         };
@@ -369,6 +373,35 @@ public partial class DesktopWidgetWindow : Window
                 BuildCalendarWidget();
             }
         }
+        else if (_kind == DesktopWidgetKind.Reminder)
+        {
+            CheckDueReminders();
+        }
+    }
+
+    private void CheckDueReminders()
+    {
+        if (_settings.Reminders is null || _settings.Reminders.Count == 0) return;
+        var now = DateTime.Now;
+        bool changed = false;
+
+        foreach (var item in _settings.Reminders)
+        {
+            if (!item.IsCompleted && item.DueAt.HasValue && item.DueAt.Value <= now && !item.Notified)
+            {
+                item.Notified = true;
+                changed = true;
+                try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
+                ReminderDue?.Invoke(item);
+            }
+        }
+
+        if (changed)
+            SettingsChanged?.Invoke();
+
+        // Refresh relative time badges ("In 5m", "Overdue", etc.)
+        if (_settings.Reminders.Any(r => !r.IsCompleted && r.DueAt.HasValue))
+            RebuildRemindersList();
     }
 
     public async Task RefreshWeatherAsync(bool force = false)
@@ -565,9 +598,15 @@ public partial class DesktopWidgetWindow : Window
             return;
         }
 
-        foreach (var item in _settings.Reminders)
+        var now = DateTime.Now;
+        var ordered = _settings.Reminders
+            .OrderBy(r => r.IsCompleted)
+            .ThenBy(r => r.DueAt ?? DateTime.MaxValue)
+            .ToList();
+
+        foreach (var item in ordered)
         {
-            var row = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            var row = new Grid { Margin = new Thickness(0, 4, 0, 4) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -576,7 +615,7 @@ public partial class DesktopWidgetWindow : Window
             {
                 Width = 18,
                 Height = 18,
-                Margin = new Thickness(0, 1, 8, 0),
+                Margin = new Thickness(0, 2, 8, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Top,
                 Background = Brushes.Transparent,
@@ -607,23 +646,65 @@ public partial class DesktopWidgetWindow : Window
             checkBtn.Background = Brushes.Transparent;
             checkBtn.Click += (_, _) =>
             {
-                item.IsCompleted = !item.IsCompleted;
+                if (!item.IsCompleted && !string.IsNullOrEmpty(item.Recurrence) && item.DueAt.HasValue)
+                {
+                    var next = NaturalLanguageReminderParser.ComputeNextOccurrence(item.DueAt.Value, item.Recurrence);
+                    if (next.HasValue)
+                    {
+                        item.DueAt = next.Value;
+                        item.Notified = false;
+                    }
+                    else
+                    {
+                        item.IsCompleted = true;
+                    }
+                }
+                else
+                {
+                    item.IsCompleted = !item.IsCompleted;
+                }
                 RebuildRemindersList();
                 SettingsChanged?.Invoke();
             };
             Grid.SetColumn(checkBtn, 0);
 
+            var contentStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             var text = new TextBlock
             {
                 Text = item.Text,
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = VerticalAlignment.Center,
                 TextDecorations = item.IsCompleted ? TextDecorations.Strikethrough : null,
                 Opacity = item.IsCompleted ? 0.52 : 1.0
             };
             text.SetResourceReference(TextBlock.ForegroundProperty, "GlassTextPrimaryBrush");
-            Grid.SetColumn(text, 1);
+            contentStack.Children.Add(text);
+
+            if (item.DueAt.HasValue)
+            {
+                var diff = item.DueAt.Value - now;
+                bool isOverdue = !item.IsCompleted && diff.TotalSeconds < -30;
+                bool isSoon = !item.IsCompleted && !isOverdue && diff.TotalHours <= 1;
+
+                Color badgeColor = item.IsCompleted
+                    ? Color.FromArgb(140, 180, 190, 205)
+                    : isOverdue
+                        ? Color.FromRgb(255, 69, 58)
+                        : isSoon
+                            ? Color.FromRgb(255, 159, 10)
+                            : Color.FromRgb(100, 210, 255);
+
+                var dueText = new TextBlock
+                {
+                    Text = NaturalLanguageReminderParser.FormatDueLabel(item.DueAt.Value, now, item.Recurrence),
+                    FontSize = 10,
+                    FontWeight = isOverdue || isSoon ? FontWeights.SemiBold : FontWeights.Normal,
+                    Foreground = new SolidColorBrush(badgeColor),
+                    Margin = new Thickness(0, 1, 0, 0)
+                };
+                contentStack.Children.Add(dueText);
+            }
+            Grid.SetColumn(contentStack, 1);
 
             var delBtn = new System.Windows.Controls.Button
             {
@@ -649,7 +730,7 @@ public partial class DesktopWidgetWindow : Window
             Grid.SetColumn(delBtn, 2);
 
             row.Children.Add(checkBtn);
-            row.Children.Add(text);
+            row.Children.Add(contentStack);
             row.Children.Add(delBtn);
             ReminderItemsPanel.Children.Add(row);
         }
@@ -657,7 +738,26 @@ public partial class DesktopWidgetWindow : Window
 
     private void ReminderInputBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        ReminderPlaceholder.Visibility = string.IsNullOrEmpty(ReminderInputBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+        string raw = ReminderInputBox.Text;
+        ReminderPlaceholder.Visibility = string.IsNullOrEmpty(raw) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            ReminderParsePreviewBorder.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var parsed = NaturalLanguageReminderParser.Parse(raw);
+        if (parsed.DueAt.HasValue)
+        {
+            string dueLabel = NaturalLanguageReminderParser.FormatDueLabel(parsed.DueAt.Value, DateTime.Now, parsed.Recurrence);
+            ReminderParsePreviewText.Text = $"{dueLabel} \u00B7 {parsed.Title}";
+            ReminderParsePreviewBorder.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ReminderParsePreviewBorder.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void ReminderInputBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -671,14 +771,72 @@ public partial class DesktopWidgetWindow : Window
 
     private void AddReminder_Click(object sender, RoutedEventArgs e) => AddReminderFromInput();
 
+    private async void ReminderVoice_Click(object sender, RoutedEventArgs e)
+    {
+        if (_voice is not null && _voice.IsListening)
+        {
+            _voice.Cancel();
+            return;
+        }
+
+        _voice ??= new VoiceRecognitionService();
+        _voice.HypothesisReceived -= OnVoiceHypothesis;
+        _voice.HypothesisReceived += OnVoiceHypothesis;
+
+        // Visual listening state
+        ReminderVoiceBtn.Background = new SolidColorBrush(Color.FromArgb(200, 255, 69, 58));
+        ReminderVoiceIcon.Text = "\uE71A"; // Stop square
+        ReminderParsePreviewText.Text = "Listening... speak your reminder";
+        ReminderParsePreviewBorder.Visibility = Visibility.Visible;
+
+        var result = await _voice.ListenOnceAsync();
+
+        // Reset button appearance
+        ReminderVoiceBtn.ClearValue(System.Windows.Controls.Control.BackgroundProperty);
+        ReminderVoiceIcon.Text = "\uE720"; // Mic icon
+
+        if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
+        {
+            ReminderInputBox.Text = result.Text;
+            AddReminderFromInput();
+        }
+        else if (!string.IsNullOrEmpty(result.ErrorMessage) && result.ErrorMessage != "Cancelled")
+        {
+            ReminderParsePreviewText.Text = result.ErrorMessage;
+            ReminderParsePreviewBorder.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ReminderParsePreviewBorder.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnVoiceHypothesis(string partialText)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            ReminderInputBox.Text = partialText;
+            ReminderInputBox.CaretIndex = partialText.Length;
+        });
+    }
+
     private void AddReminderFromInput()
     {
-        string text = ReminderInputBox.Text.Trim();
-        if (string.IsNullOrEmpty(text)) return;
+        string raw = ReminderInputBox.Text.Trim();
+        if (string.IsNullOrEmpty(raw)) return;
 
+        var parsed = NaturalLanguageReminderParser.Parse(raw);
         _settings.Reminders ??= [];
-        _settings.Reminders.Insert(0, new ReminderItem { Text = text, IsCompleted = false });
+        _settings.Reminders.Insert(0, new ReminderItem
+        {
+            Text = parsed.Title,
+            IsCompleted = false,
+            DueAt = parsed.DueAt,
+            Recurrence = parsed.Recurrence,
+            Notified = false
+        });
         ReminderInputBox.Text = string.Empty;
+        ReminderParsePreviewBorder.Visibility = Visibility.Collapsed;
         RebuildRemindersList();
         SettingsChanged?.Invoke();
     }
@@ -753,6 +911,7 @@ public partial class DesktopWidgetWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _timer.Stop();
+        _voice?.Dispose();
         base.OnClosed(e);
     }
 }

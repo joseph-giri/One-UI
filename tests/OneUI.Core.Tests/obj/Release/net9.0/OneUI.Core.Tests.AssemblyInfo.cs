@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OneUI.Core.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0bc2c464dc0f751e6dd72f80fe11d9a714a2671a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+db41fc208ea4d7e7861bf3c902b54d81183615dc")]
 [assembly: System.Reflection.AssemblyProductAttribute("OneUI.Core.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OneUI.Core.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -216,6 +216,18 @@ public partial class App : System.Windows.Application
             ShowSettings();
             _settingsWindow?.OpenWidgetsTab();
         };
+        w.ReminderDue += item =>
+        {
+            try
+            {
+                _trayIcon?.ShowBalloonTip(
+                    8000,
+                    "OneUI Reminder",
+                    item.Text,
+                    WinForms.ToolTipIcon.Info);
+            }
+            catch { }
+        };
         _widgets[kind] = w;
     }
 

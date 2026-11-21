@@ -9,3 +9,4 @@ c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.dll
 c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\refint\OneUI.Core.dll
 c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.pdb
 c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\ref\OneUI.Core.dll
+c:\Users\Joseph\One UI\src\OneUI.Core\obj\Release\net9.0\OneUI.Core.sourcelink.json

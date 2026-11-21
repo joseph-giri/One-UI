@@ -99,3 +99,4 @@ c:\Users\Joseph\One UI\tests\OneUI.Core.Tests\obj\Release\net9.0\refint\OneUI.Co
 c:\Users\Joseph\One UI\tests\OneUI.Core.Tests\obj\Release\net9.0\OneUI.Core.Tests.pdb
 c:\Users\Joseph\One UI\tests\OneUI.Core.Tests\obj\Release\net9.0\OneUI.Core.Tests.genruntimeconfig.cache
 c:\Users\Joseph\One UI\tests\OneUI.Core.Tests\obj\Release\net9.0\ref\OneUI.Core.Tests.dll
+c:\Users\Joseph\One UI\tests\OneUI.Core.Tests\obj\Release\net9.0\OneUI.Core.Tests.sourcelink.json

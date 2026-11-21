@@ -95,6 +95,9 @@ public sealed class ReminderItem
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
     public string Text { get; set; } = string.Empty;
     public bool IsCompleted { get; set; }
+    public DateTime? DueAt { get; set; }
+    public string? Recurrence { get; set; }
+    public bool Notified { get; set; }
 }
 
 public sealed class ClockWidgetConfig
