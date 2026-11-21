@@ -104,4 +104,25 @@ public class NaturalLanguageReminderParserTests
         Assert.Equal("Drink water", r3.Title);
         Assert.Equal(new DateTime(2026, 11, 21, 14, 0, 0), r3.DueAt);
     }
+
+    [Fact]
+    public void Parses_ContinuousIntervalReminders()
+    {
+        var r1 = NaturalLanguageReminderParser.Parse("Drink water in every 15 minutes", RefNow);
+        Assert.Equal("Drink water", r1.Title);
+        Assert.Equal(15, r1.RepeatIntervalMinutes);
+        Assert.Equal("Every 15m", r1.Recurrence);
+        Assert.Equal(new DateTime(2026, 11, 21, 13, 15, 0), r1.DueAt);
+
+        var r2 = NaturalLanguageReminderParser.Parse("Continuous reminder to stretch every two hours", RefNow);
+        Assert.Equal("Stretch", r2.Title);
+        Assert.Equal(120, r2.RepeatIntervalMinutes);
+        Assert.Equal("Every 2h", r2.Recurrence);
+        Assert.Equal(new DateTime(2026, 11, 21, 15, 0, 0), r2.DueAt);
+
+        var r3 = NaturalLanguageReminderParser.Parse("Rest eyes every half hour", RefNow);
+        Assert.Equal("Rest eyes", r3.Title);
+        Assert.Equal(30, r3.RepeatIntervalMinutes);
+        Assert.Equal(new DateTime(2026, 11, 21, 13, 30, 0), r3.DueAt);
+    }
 }

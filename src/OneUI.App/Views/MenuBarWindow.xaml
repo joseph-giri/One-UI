@@ -6,7 +6,8 @@
         Topmost="True"
         ShowInTaskbar="False"
         ShowActivated="False"
-        Background="Transparent">
+        Background="Transparent"
+        PreviewMouseWheel="MenuBar_PreviewMouseWheel">
 
     <Border Background="{DynamicResource GlassSurfaceBrush}"
             BorderBrush="{DynamicResource GlassDividerBrush}"
@@ -139,9 +140,21 @@
 
                 <Button Style="{StaticResource GlassPillButton}"
                         Click="ControlCenter_Click"
+                        MouseDown="VolumeButton_MouseDown"
                         Padding="7,3"
-                        ToolTip="Sound &amp; Quick Settings">
-                    <TextBlock x:Name="VolumeIcon" Text="&#xE767;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5"/>
+                        ToolTip="Sound &amp; Quick Settings (Scroll anywhere on Top Bar to adjust volume, middle-click to mute)">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="VolumeIcon" Text="&#xE767;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="VolumePercentText"
+                                   Text=""
+                                   Visibility="Collapsed"
+                                   FontFamily="Segoe UI Variable Text, Segoe UI"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource GlassTextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="5,0,0,0"/>
+                    </StackPanel>
                 </Button>
 
                 <!-- Drawn Visual Battery Gauge + Percentage -->

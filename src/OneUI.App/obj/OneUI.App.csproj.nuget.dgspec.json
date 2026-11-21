@@ -48,9 +48,17 @@
         "net9.0-windows10.0.19041": {
           "targetAlias": "net9.0-windows10.0.19041.0",
           "dependencies": {
-            "System.Speech": {
+            "NAudio": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[2.2.1, )"
+            },
+            "Whisper.net": {
+              "target": "Package",
+              "version": "[1.7.4, )"
+            },
+            "Whisper.net.Runtime": {
+              "target": "Package",
+              "version": "[1.7.4, )"
             }
           },
           "imports": [

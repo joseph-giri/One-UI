@@ -1,5 +1,8 @@
-using System.Speech.Recognition;
-using WinRtSpeech = Windows.Media.SpeechRecognition;
+using System.Net.Http;
+using System.Text;
+using NAudio;
+using NAudio.Wave;
+using Whisper.net;
 
 namespace OneUI.App.Native;
 
@@ -8,16 +11,29 @@ public sealed record VoiceRecognitionResult(
     string Text,
     string? ErrorMessage = null);
 
+/// <summary>
+/// 100% silent, local in-process voice-to-text using NAudio microphone capture + Whisper.net (tiny.en quantized 31MB model).
+/// Zero external Windows apps, zero popups, works on any Windows locale.
+/// </summary>
 public sealed class VoiceRecognitionService : IDisposable
 {
-    private SpeechRecognitionEngine? _sapiEngine;
-    private WinRtSpeech.SpeechRecognizer? _winrtRecognizer;
+    private const string ModelFileName = "ggml-tiny.en-q5_1.bin";
+    private const string ModelUrl = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin";
+
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
+    private static readonly SemaphoreSlim ModelLock = new(1, 1);
+    private static WhisperFactory? _sharedFactory;
+
     private CancellationTokenSource? _cts;
     private bool _isListening;
 
     public bool IsListening => _isListening;
 
-    public event Action<string>? HypothesisReceived;
+    public event Action<string>? StatusChanged;
+
+    private static string ModelPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "OneUI", "models", ModelFileName);
 
     public async Task<VoiceRecognitionResult> ListenOnceAsync()
     {
@@ -29,17 +45,46 @@ public sealed class VoiceRecognitionService : IDisposable
 
         _isListening = true;
         _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
 
         try
         {
-            // 1. Primary: 100% silent, offline in-process Windows SAPI dictation (no popups, no external app, no cloud privacy wall)
-            var sapiResult = await ListenWithSapiAsync(_cts.Token);
-            if (sapiResult.Success || sapiResult.ErrorMessage is "Cancelled" or "No speech detected")
-                return sapiResult;
+            // 1. Ensure the tiny local Whisper model (~31 MB) is downloaded once
+            bool modelReady = await EnsureModelAsync(ct);
+            if (!modelReady)
+                return new VoiceRecognitionResult(false, string.Empty, "Could not download voice model (check internet)");
 
-            // 2. Silent in-process fallback: WinRT SpeechRecognizer (still completely silent, no UI)
-            var winrtResult = await ListenWithWinRtAsync(_cts.Token);
-            return winrtResult.Success ? winrtResult : sapiResult;
+            // 2. Record from default microphone with automatic speech/silence detection
+            StatusChanged?.Invoke("Listening... speak your reminder");
+            float[] samples = await RecordUtteranceAsync(ct);
+
+            if (ct.IsCancellationRequested && samples.Length < 4000)
+                return new VoiceRecognitionResult(false, string.Empty, "Cancelled");
+
+            if (samples.Length < 4000) // < 0.25s of audio
+                return new VoiceRecognitionResult(false, string.Empty, "No speech detected");
+
+            // 3. Transcribe locally in-process via Whisper.net
+            StatusChanged?.Invoke("Transcribing...");
+            string transcript = await TranscribeAsync(samples, CancellationToken.None);
+            transcript = CleanTranscript(transcript);
+
+            if (string.IsNullOrWhiteSpace(transcript))
+                return new VoiceRecognitionResult(false, string.Empty, "Didn't catch that — try again");
+
+            return new VoiceRecognitionResult(true, transcript);
+        }
+        catch (OperationCanceledException)
+        {
+            return new VoiceRecognitionResult(false, string.Empty, "Cancelled");
+        }
+        catch (MmException)
+        {
+            return new VoiceRecognitionResult(false, string.Empty, "No microphone found");
+        }
+        catch (Exception ex)
+        {
+            return new VoiceRecognitionResult(false, string.Empty, $"Voice error: {ex.Message}");
         }
         finally
         {
@@ -49,157 +94,192 @@ public sealed class VoiceRecognitionService : IDisposable
         }
     }
 
-    private Task<VoiceRecognitionResult> ListenWithSapiAsync(CancellationToken ct)
+    private async Task<bool> EnsureModelAsync(CancellationToken ct)
     {
-        return Task.Run(() =>
-        {
-            SpeechRecognitionEngine? engine = null;
-            try
-            {
-                var recognizers = SpeechRecognitionEngine.InstalledRecognizers();
-                if (recognizers.Count == 0)
-                    return new VoiceRecognitionResult(false, string.Empty, "No speech recognizer installed");
+        if (File.Exists(ModelPath) && new FileInfo(ModelPath).Length > 10_000_000)
+            return true;
 
-                var info = recognizers.FirstOrDefault(r => r.Culture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase))
-                           ?? recognizers[0];
-
-                engine = new SpeechRecognitionEngine(info);
-                _sapiEngine = engine;
-
-                engine.LoadGrammar(new DictationGrammar());
-                engine.SetInputToDefaultAudioDevice();
-                engine.InitialSilenceTimeout = TimeSpan.FromSeconds(6);
-                engine.BabbleTimeout = TimeSpan.FromSeconds(15);
-                engine.EndSilenceTimeout = TimeSpan.FromMilliseconds(1100);
-                engine.EndSilenceTimeoutAmbiguous = TimeSpan.FromMilliseconds(1300);
-
-                var tcs = new TaskCompletionSource<VoiceRecognitionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                engine.SpeechHypothesized += (_, args) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(args.Result?.Text))
-                        HypothesisReceived?.Invoke(args.Result.Text);
-                };
-
-                engine.SpeechRecognized += (_, args) =>
-                {
-                    if (!string.IsNullOrWhiteSpace(args.Result?.Text))
-                        tcs.TrySetResult(new VoiceRecognitionResult(true, args.Result.Text.Trim()));
-                };
-
-                engine.RecognizeCompleted += (_, args) =>
-                {
-                    if (args.Cancelled)
-                        tcs.TrySetResult(new VoiceRecognitionResult(false, string.Empty, "Cancelled"));
-                    else if (args.Error is not null)
-                        tcs.TrySetResult(new VoiceRecognitionResult(false, string.Empty, "Microphone unavailable"));
-                    else if (args.InitialSilenceTimeout)
-                        tcs.TrySetResult(new VoiceRecognitionResult(false, string.Empty, "No speech detected"));
-                    else if (args.Result is not null && !string.IsNullOrWhiteSpace(args.Result.Text))
-                        tcs.TrySetResult(new VoiceRecognitionResult(true, args.Result.Text.Trim()));
-                    else
-                        tcs.TrySetResult(new VoiceRecognitionResult(false, string.Empty, "Didn't catch that — try again"));
-                };
-
-                using var reg = ct.Register(() =>
-                {
-                    try { engine.RecognizeAsyncCancel(); } catch { }
-                    tcs.TrySetResult(new VoiceRecognitionResult(false, string.Empty, "Cancelled"));
-                });
-
-                engine.RecognizeAsync(RecognizeMode.Single);
-                return tcs.Task.GetAwaiter().GetResult();
-            }
-            catch (InvalidOperationException)
-            {
-                return new VoiceRecognitionResult(false, string.Empty, "No microphone detected");
-            }
-            catch
-            {
-                return new VoiceRecognitionResult(false, string.Empty, "Speech engine unavailable");
-            }
-            finally
-            {
-                if (engine is not null)
-                {
-                    try { engine.RecognizeAsyncCancel(); } catch { }
-                    try { engine.Dispose(); } catch { }
-                }
-                _sapiEngine = null;
-            }
-        }, ct);
-    }
-
-    private async Task<VoiceRecognitionResult> ListenWithWinRtAsync(CancellationToken ct)
-    {
+        await ModelLock.WaitAsync(ct);
         try
         {
-            _winrtRecognizer?.Dispose();
-            _winrtRecognizer = new WinRtSpeech.SpeechRecognizer();
-            _winrtRecognizer.Constraints.Add(
-                new WinRtSpeech.SpeechRecognitionTopicConstraint(WinRtSpeech.SpeechRecognitionScenario.Dictation, "reminder"));
+            if (File.Exists(ModelPath) && new FileInfo(ModelPath).Length > 10_000_000)
+                return true;
 
-            var compilation = await _winrtRecognizer.CompileConstraintsAsync();
-            if (compilation.Status != WinRtSpeech.SpeechRecognitionResultStatus.Success)
-                return new VoiceRecognitionResult(false, string.Empty, "Speech engine unavailable");
+            Directory.CreateDirectory(Path.GetDirectoryName(ModelPath)!);
+            string tempPath = ModelPath + ".downloading";
 
-            _winrtRecognizer.Timeouts.InitialSilenceTimeout = TimeSpan.FromSeconds(6);
-            _winrtRecognizer.Timeouts.EndSilenceTimeout = TimeSpan.FromSeconds(1.2);
-            _winrtRecognizer.Timeouts.BabbleTimeout = TimeSpan.FromSeconds(15);
-            _winrtRecognizer.HypothesisGenerated += OnWinRtHypothesis;
+            StatusChanged?.Invoke("Downloading voice model (one-time, 31 MB)...");
 
-            var op = _winrtRecognizer.RecognizeAsync();
-            using var reg = ct.Register(() =>
+            using var resp = await Http.GetAsync(ModelUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            resp.EnsureSuccessStatusCode();
+
+            long total = resp.Content.Headers.ContentLength ?? 32_000_000;
+            await using var src = await resp.Content.ReadAsStreamAsync(ct);
+            await using (var dst = File.Create(tempPath))
             {
-                try { op.Cancel(); } catch { }
-            });
+                var buffer = new byte[81920];
+                long downloaded = 0;
+                int lastPct = -1;
+                int read;
+                while ((read = await src.ReadAsync(buffer, ct)) > 0)
+                {
+                    await dst.WriteAsync(buffer.AsMemory(0, read), ct);
+                    downloaded += read;
+                    int pct = (int)Math.Clamp(downloaded * 100 / Math.Max(1, total), 0, 100);
+                    if (pct != lastPct && pct % 5 == 0)
+                    {
+                        lastPct = pct;
+                        StatusChanged?.Invoke($"Downloading voice model... {pct}%");
+                    }
+                }
+            }
 
-            var result = await op;
-            if (result.Status == WinRtSpeech.SpeechRecognitionResultStatus.Success && !string.IsNullOrWhiteSpace(result.Text))
-                return new VoiceRecognitionResult(true, result.Text.Trim());
-
-            if (result.Status == WinRtSpeech.SpeechRecognitionResultStatus.TimeoutExceeded)
-                return new VoiceRecognitionResult(false, string.Empty, "No speech detected");
-
-            return new VoiceRecognitionResult(false, string.Empty, "Didn't catch that — try again");
-        }
-        catch (OperationCanceledException)
-        {
-            return new VoiceRecognitionResult(false, string.Empty, "Cancelled");
+            File.Move(tempPath, ModelPath, overwrite: true);
+            return true;
         }
         catch
         {
-            return new VoiceRecognitionResult(false, string.Empty, "Voice input unavailable");
+            return false;
         }
         finally
         {
-            if (_winrtRecognizer is not null)
-            {
-                _winrtRecognizer.HypothesisGenerated -= OnWinRtHypothesis;
-                try { _winrtRecognizer.Dispose(); } catch { }
-                _winrtRecognizer = null;
-            }
+            ModelLock.Release();
         }
     }
 
-    private void OnWinRtHypothesis(WinRtSpeech.SpeechRecognizer sender, WinRtSpeech.SpeechRecognitionHypothesisGeneratedEventArgs args)
+    private Task<float[]> RecordUtteranceAsync(CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(args.Hypothesis?.Text))
-            HypothesisReceived?.Invoke(args.Hypothesis.Text);
+        return Task.Run(() =>
+        {
+            const int sampleRate = 16000;
+            const double speechRmsThreshold = 0.015;
+            const int maxInitialSilenceMs = 6000;
+            const int endSilenceMs = 1300;
+            const int maxTotalMs = 14000;
+
+            var pcmSamples = new List<float>(sampleRate * 5);
+            using var doneEvent = new ManualResetEventSlim(false);
+            using var waveIn = new WaveInEvent
+            {
+                WaveFormat = new WaveFormat(sampleRate, 16, 1),
+                BufferMilliseconds = 100
+            };
+
+            bool speechStarted = false;
+            var startTime = DateTime.UtcNow;
+            var lastSpeechTime = DateTime.UtcNow;
+
+            waveIn.DataAvailable += (_, e) =>
+            {
+                int sampleCount = e.BytesRecorded / 2;
+                double sumSq = 0;
+                var chunk = new float[sampleCount];
+
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    short s = BitConverter.ToInt16(e.Buffer, i * 2);
+                    float f = s / 32768f;
+                    chunk[i] = f;
+                    sumSq += f * f;
+                }
+
+                double rms = sampleCount > 0 ? Math.Sqrt(sumSq / sampleCount) : 0;
+                var now = DateTime.UtcNow;
+
+                lock (pcmSamples)
+                {
+                    pcmSamples.AddRange(chunk);
+                }
+
+                if (rms >= speechRmsThreshold)
+                {
+                    if (!speechStarted)
+                    {
+                        speechStarted = true;
+                        StatusChanged?.Invoke("Hearing you... (click stop when done)");
+                    }
+                    lastSpeechTime = now;
+                }
+
+                double elapsedMs = (now - startTime).TotalMilliseconds;
+                if (elapsedMs >= maxTotalMs)
+                {
+                    doneEvent.Set();
+                }
+                else if (!speechStarted && elapsedMs >= maxInitialSilenceMs)
+                {
+                    doneEvent.Set();
+                }
+                else if (speechStarted && (now - lastSpeechTime).TotalMilliseconds >= endSilenceMs)
+                {
+                    doneEvent.Set();
+                }
+            };
+
+            waveIn.RecordingStopped += (_, _) => doneEvent.Set();
+
+            using var reg = ct.Register(() => doneEvent.Set());
+
+            waveIn.StartRecording();
+            doneEvent.Wait();
+            try { waveIn.StopRecording(); } catch { }
+
+            if (!speechStarted)
+                return [];
+
+            lock (pcmSamples)
+            {
+                return pcmSamples.ToArray();
+            }
+        }, CancellationToken.None);
+    }
+
+    private static async Task<string> TranscribeAsync(float[] samples, CancellationToken ct)
+    {
+        await ModelLock.WaitAsync(ct);
+        try
+        {
+            _sharedFactory ??= WhisperFactory.FromPath(ModelPath);
+        }
+        finally
+        {
+            ModelLock.Release();
+        }
+
+        using var processor = _sharedFactory.CreateBuilder()
+            .WithLanguage("en")
+            .Build();
+
+        var sb = new StringBuilder();
+        await foreach (var segment in processor.ProcessAsync(samples, ct))
+        {
+            if (!string.IsNullOrWhiteSpace(segment.Text))
+                sb.Append(segment.Text).Append(' ');
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private static string CleanTranscript(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        string s = raw.Trim();
+
+        // Filter out common Whisper non-speech tokens like [BLANK_AUDIO], (music), etc.
+        if (s.StartsWith('[') && s.EndsWith(']')) return string.Empty;
+        if (s.StartsWith('(') && s.EndsWith(')')) return string.Empty;
+
+        s = s.Replace("[BLANK_AUDIO]", "", StringComparison.OrdinalIgnoreCase).Trim();
+        return s.TrimEnd('.', '!', '?').Trim();
     }
 
     public void Cancel()
     {
         try { _cts?.Cancel(); } catch { }
-        try { _sapiEngine?.RecognizeAsyncCancel(); } catch { }
     }
 
     public void Dispose()
     {
         Cancel();
-        try { _sapiEngine?.Dispose(); } catch { }
-        try { _winrtRecognizer?.Dispose(); } catch { }
-        _sapiEngine = null;
-        _winrtRecognizer = null;
     }
 }

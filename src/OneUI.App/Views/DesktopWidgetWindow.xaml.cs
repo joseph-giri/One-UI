@@ -387,12 +387,25 @@ public partial class DesktopWidgetWindow : Window
 
         foreach (var item in _settings.Reminders)
         {
-            if (!item.IsCompleted && item.DueAt.HasValue && item.DueAt.Value <= now && !item.Notified)
+            if (item.IsCompleted || item.IsPaused || !item.DueAt.HasValue) continue;
+
+            if (item.DueAt.Value <= now && !item.Notified)
             {
-                item.Notified = true;
                 changed = true;
-                try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
+                ReminderSoundService.Play(_settings.ReminderSound);
                 ReminderDue?.Invoke(item);
+
+                if (item.RepeatIntervalMinutes is > 0)
+                {
+                    // Continuous reminder: automatically schedule the next cycle!
+                    item.DueAt = NaturalLanguageReminderParser.ComputeNextOccurrence(
+                        item.DueAt.Value, item.Recurrence, item.RepeatIntervalMinutes, now);
+                    item.Notified = false;
+                }
+                else
+                {
+                    item.Notified = true;
+                }
             }
         }
 
@@ -606,9 +619,11 @@ public partial class DesktopWidgetWindow : Window
 
         foreach (var item in ordered)
         {
+            bool isContinuous = item.RepeatIntervalMinutes is > 0;
             var row = new Grid { Margin = new Thickness(0, 4, 0, 4) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             var checkBtn = new System.Windows.Controls.Button
@@ -620,13 +635,22 @@ public partial class DesktopWidgetWindow : Window
                 VerticalAlignment = VerticalAlignment.Top,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
+                ToolTip = isContinuous ? "Reset countdown now" : "Mark complete",
                 Content = new Border
                 {
                     Width = 16,
                     Height = 16,
                     CornerRadius = new CornerRadius(8),
-                    Background = item.IsCompleted ? new SolidColorBrush(Color.FromRgb(10, 132, 255)) : Brushes.Transparent,
-                    BorderBrush = item.IsCompleted ? new SolidColorBrush(Color.FromRgb(10, 132, 255)) : new SolidColorBrush(Color.FromArgb(140, 255, 255, 255)),
+                    Background = item.IsCompleted
+                        ? new SolidColorBrush(Color.FromRgb(10, 132, 255))
+                        : isContinuous && !item.IsPaused
+                            ? new SolidColorBrush(Color.FromArgb(45, 48, 209, 88))
+                            : Brushes.Transparent,
+                    BorderBrush = item.IsCompleted
+                        ? new SolidColorBrush(Color.FromRgb(10, 132, 255))
+                        : isContinuous
+                            ? new SolidColorBrush(item.IsPaused ? Color.FromArgb(120, 180, 190, 205) : Color.FromRgb(48, 209, 88))
+                            : new SolidColorBrush(Color.FromArgb(140, 255, 255, 255)),
                     BorderThickness = new Thickness(1.4),
                     Child = item.IsCompleted
                         ? new TextBlock
@@ -638,7 +662,17 @@ public partial class DesktopWidgetWindow : Window
                             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                             VerticalAlignment = VerticalAlignment.Center
                         }
-                        : null
+                        : isContinuous
+                            ? new TextBlock
+                            {
+                                Text = "\uE895",
+                                FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                                FontSize = 8.5,
+                                Foreground = new SolidColorBrush(item.IsPaused ? Color.FromArgb(160, 180, 190, 205) : Color.FromRgb(48, 209, 88)),
+                                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }
+                            : null
                 }
             };
             checkBtn.Style = (Style)FindResource("GlassPillButton");
@@ -646,12 +680,17 @@ public partial class DesktopWidgetWindow : Window
             checkBtn.Background = Brushes.Transparent;
             checkBtn.Click += (_, _) =>
             {
-                if (!item.IsCompleted && !string.IsNullOrEmpty(item.Recurrence) && item.DueAt.HasValue)
+                if (!item.IsCompleted && (isContinuous || !string.IsNullOrEmpty(item.Recurrence)) && item.DueAt.HasValue)
                 {
-                    var next = NaturalLanguageReminderParser.ComputeNextOccurrence(item.DueAt.Value, item.Recurrence);
+                    var next = NaturalLanguageReminderParser.ComputeNextOccurrence(
+                        isContinuous ? DateTime.Now : item.DueAt.Value,
+                        item.Recurrence,
+                        item.RepeatIntervalMinutes,
+                        DateTime.Now);
                     if (next.HasValue)
                     {
                         item.DueAt = next.Value;
+                        item.IsPaused = false;
                         item.Notified = false;
                     }
                     else
@@ -675,7 +714,7 @@ public partial class DesktopWidgetWindow : Window
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
                 TextDecorations = item.IsCompleted ? TextDecorations.Strikethrough : null,
-                Opacity = item.IsCompleted ? 0.52 : 1.0
+                Opacity = item.IsCompleted || item.IsPaused ? 0.55 : 1.0
             };
             text.SetResourceReference(TextBlock.ForegroundProperty, "GlassTextPrimaryBrush");
             contentStack.Children.Add(text);
@@ -683,22 +722,28 @@ public partial class DesktopWidgetWindow : Window
             if (item.DueAt.HasValue)
             {
                 var diff = item.DueAt.Value - now;
-                bool isOverdue = !item.IsCompleted && diff.TotalSeconds < -30;
-                bool isSoon = !item.IsCompleted && !isOverdue && diff.TotalHours <= 1;
+                bool isOverdue = !item.IsCompleted && !item.IsPaused && diff.TotalSeconds < -30;
+                bool isSoon = !item.IsCompleted && !item.IsPaused && !isOverdue && diff.TotalHours <= 1;
 
-                Color badgeColor = item.IsCompleted
-                    ? Color.FromArgb(140, 180, 190, 205)
+                Color badgeColor = item.IsCompleted || item.IsPaused
+                    ? Color.FromArgb(150, 180, 190, 205)
                     : isOverdue
                         ? Color.FromRgb(255, 69, 58)
-                        : isSoon
-                            ? Color.FromRgb(255, 159, 10)
-                            : Color.FromRgb(100, 210, 255);
+                        : isContinuous
+                            ? Color.FromRgb(48, 209, 88)
+                            : isSoon
+                                ? Color.FromRgb(255, 159, 10)
+                                : Color.FromRgb(100, 210, 255);
+
+                string label = item.IsPaused
+                    ? $"Paused \u00B7 {item.Recurrence ?? "Continuous"}"
+                    : NaturalLanguageReminderParser.FormatDueLabel(item.DueAt.Value, now, item.Recurrence);
 
                 var dueText = new TextBlock
                 {
-                    Text = NaturalLanguageReminderParser.FormatDueLabel(item.DueAt.Value, now, item.Recurrence),
+                    Text = label,
                     FontSize = 10,
-                    FontWeight = isOverdue || isSoon ? FontWeights.SemiBold : FontWeights.Normal,
+                    FontWeight = isOverdue || isSoon || isContinuous ? FontWeights.SemiBold : FontWeights.Normal,
                     Foreground = new SolidColorBrush(badgeColor),
                     Margin = new Thickness(0, 1, 0, 0)
                 };
@@ -706,11 +751,43 @@ public partial class DesktopWidgetWindow : Window
             }
             Grid.SetColumn(contentStack, 1);
 
+            if (isContinuous && !item.IsCompleted)
+            {
+                var pauseBtn = new System.Windows.Controls.Button
+                {
+                    Style = (Style)FindResource("GlassPillButton"),
+                    Padding = new Thickness(4, 1, 4, 1),
+                    Margin = new Thickness(4, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    ToolTip = item.IsPaused ? "Resume continuous reminder" : "Pause continuous reminder",
+                    Content = new TextBlock
+                    {
+                        Text = item.IsPaused ? "\uE768" : "\uE769",
+                        FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                        FontSize = 9,
+                        Opacity = 0.85
+                    }
+                };
+                pauseBtn.Click += (_, _) =>
+                {
+                    item.IsPaused = !item.IsPaused;
+                    if (!item.IsPaused && item.RepeatIntervalMinutes is > 0)
+                    {
+                        item.DueAt = DateTime.Now.AddMinutes(item.RepeatIntervalMinutes.Value);
+                        item.Notified = false;
+                    }
+                    RebuildRemindersList();
+                    SettingsChanged?.Invoke();
+                };
+                Grid.SetColumn(pauseBtn, 2);
+                row.Children.Add(pauseBtn);
+            }
+
             var delBtn = new System.Windows.Controls.Button
             {
                 Style = (Style)FindResource("GlassPillButton"),
                 Padding = new Thickness(4, 1, 4, 1),
-                Margin = new Thickness(4, 0, 0, 0),
+                Margin = new Thickness(3, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Top,
                 ToolTip = "Delete",
                 Content = new TextBlock
@@ -727,7 +804,7 @@ public partial class DesktopWidgetWindow : Window
                 RebuildRemindersList();
                 SettingsChanged?.Invoke();
             };
-            Grid.SetColumn(delBtn, 2);
+            Grid.SetColumn(delBtn, 3);
 
             row.Children.Add(checkBtn);
             row.Children.Add(contentStack);
@@ -780,13 +857,13 @@ public partial class DesktopWidgetWindow : Window
         }
 
         _voice ??= new VoiceRecognitionService();
-        _voice.HypothesisReceived -= OnVoiceHypothesis;
-        _voice.HypothesisReceived += OnVoiceHypothesis;
+        _voice.StatusChanged -= OnVoiceStatusChanged;
+        _voice.StatusChanged += OnVoiceStatusChanged;
 
         // Visual listening state
         ReminderVoiceBtn.Background = new SolidColorBrush(Color.FromArgb(200, 255, 69, 58));
         ReminderVoiceIcon.Text = "\uE71A"; // Stop square
-        ReminderParsePreviewText.Text = "Listening... speak your reminder";
+        ReminderParsePreviewText.Text = "Starting microphone...";
         ReminderParsePreviewBorder.Visibility = Visibility.Visible;
 
         var result = await _voice.ListenOnceAsync();
@@ -811,12 +888,12 @@ public partial class DesktopWidgetWindow : Window
         }
     }
 
-    private void OnVoiceHypothesis(string partialText)
+    private void OnVoiceStatusChanged(string status)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            ReminderInputBox.Text = partialText;
-            ReminderInputBox.CaretIndex = partialText.Length;
+            ReminderParsePreviewText.Text = status;
+            ReminderParsePreviewBorder.Visibility = Visibility.Visible;
         });
     }
 
@@ -833,6 +910,8 @@ public partial class DesktopWidgetWindow : Window
             IsCompleted = false,
             DueAt = parsed.DueAt,
             Recurrence = parsed.Recurrence,
+            RepeatIntervalMinutes = parsed.RepeatIntervalMinutes,
+            IsPaused = false,
             Notified = false
         });
         ReminderInputBox.Text = string.Empty;

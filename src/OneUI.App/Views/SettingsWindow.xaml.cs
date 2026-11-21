@@ -234,6 +234,16 @@ public partial class SettingsWindow : Window
         SettingsApplied?.Invoke();
     }
 
+    private void ReminderSound_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string preset })
+        {
+            _settings.ReminderSound = preset;
+            ReminderSoundService.Play(preset);
+            SettingsApplied?.Invoke();
+        }
+    }
+
     private void CommitChanges()
     {
         if (_loading || !IsInitialized) return;

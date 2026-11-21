@@ -55,6 +55,7 @@ public sealed class AppSettings
     public bool EnableReminderWidget { get; set; } = true;
     public string WeatherCity { get; set; } = string.Empty;
     public bool WeatherUseFahrenheit { get; set; } = false;
+    public string ReminderSound { get; set; } = "Crystal";
     public string DesktopNoteText { get; set; } = "Welcome to OneUI!\nClick here to jot down quick notes...";
     public List<ReminderItem> Reminders { get; set; } = DefaultReminders();
     public ClockWidgetConfig ClockWidget { get; set; } = new();
@@ -97,6 +98,8 @@ public sealed class ReminderItem
     public bool IsCompleted { get; set; }
     public DateTime? DueAt { get; set; }
     public string? Recurrence { get; set; }
+    public int? RepeatIntervalMinutes { get; set; }
+    public bool IsPaused { get; set; }
     public bool Notified { get; set; }
 }
 

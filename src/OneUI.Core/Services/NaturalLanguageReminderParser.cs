@@ -6,7 +6,8 @@ namespace OneUI.Core.Services;
 public sealed record ParsedReminder(
     string Title,
     DateTime? DueAt,
-    string? Recurrence);
+    string? Recurrence,
+    int? RepeatIntervalMinutes = null);
 
 public static partial class NaturalLanguageReminderParser
 {
@@ -45,53 +46,103 @@ public static partial class NaturalLanguageReminderParser
 
         string working = NormalizeSpokenText(input.Trim());
         string? recurrence = null;
+        int? repeatIntervalMinutes = null;
         DateTime? explicitDate = null;
         TimeSpan? explicitTime = null;
         bool hasRelativeOffset = false;
         DateTime relativeTarget = now;
 
-        // 1. Strip natural leading filler ("remind me to ...", "don't forget to ...", etc.)
+        // 1. Strip natural leading filler ("remind me to ...", "continuous reminder to ...", etc.)
         working = LeadingFillerRegex().Replace(working, string.Empty).Trim();
 
-        // 2. Recurrence ("every day", "daily", "every morning", "every Monday", "every week", "every hour")
-        var recMatch = RecurrenceRegex().Match(working);
-        if (recMatch.Success)
+        // 2a. Custom continuous interval recurrence ("every 15 minutes", "in every 2 hours", "every half hour")
+        var halfHourRecMatch = EveryHalfHourRegex().Match(working);
+        if (halfHourRecMatch.Success)
         {
-            string kind = recMatch.Groups["kind"].Value.ToLowerInvariant();
-            if (kind is "day" or "daily")
+            repeatIntervalMinutes = 30;
+            recurrence = "Every 30m";
+            hasRelativeOffset = true;
+            relativeTarget = now.AddMinutes(30);
+            working = RemoveSpan(working, halfHourRecMatch.Index, halfHourRecMatch.Length);
+        }
+        else
+        {
+            var intervalMatch = IntervalRecurrenceRegex().Match(working);
+            if (intervalMatch.Success &&
+                int.TryParse(intervalMatch.Groups["num"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int num) &&
+                num > 0)
             {
-                recurrence = "Daily";
-            }
-            else if (kind == "morning")
-            {
-                recurrence = "Daily";
-                explicitTime ??= new TimeSpan(9, 0, 0);
-            }
-            else if (kind == "evening")
-            {
-                recurrence = "Daily";
-                explicitTime ??= new TimeSpan(18, 0, 0);
-            }
-            else if (kind == "night")
-            {
-                recurrence = "Daily";
-                explicitTime ??= new TimeSpan(20, 0, 0);
-            }
-            else if (kind is "week" or "weekly")
-            {
-                recurrence = "Weekly";
-            }
-            else if (kind is "hour" or "hourly")
-            {
-                recurrence = "Hourly";
-            }
-            else if (DayNames.TryGetValue(kind, out var recDow))
-            {
-                recurrence = "Weekly";
-                explicitDate = NextWeekday(now.Date, recDow, forceNextWeek: false, includeToday: true);
-            }
+                string unit = intervalMatch.Groups["unit"].Value.ToLowerInvariant();
+                if (unit.StartsWith("m"))
+                {
+                    repeatIntervalMinutes = num;
+                    recurrence = $"Every {num}m";
+                }
+                else if (unit.StartsWith("h"))
+                {
+                    repeatIntervalMinutes = num * 60;
+                    recurrence = $"Every {num}h";
+                }
+                else if (unit.StartsWith("d"))
+                {
+                    repeatIntervalMinutes = num * 1440;
+                    recurrence = $"Every {num}d";
+                }
 
-            working = RemoveSpan(working, recMatch.Index, recMatch.Length);
+                if (repeatIntervalMinutes.HasValue)
+                {
+                    hasRelativeOffset = true;
+                    relativeTarget = now.AddMinutes(repeatIntervalMinutes.Value);
+                    working = RemoveSpan(working, intervalMatch.Index, intervalMatch.Length);
+                }
+            }
+        }
+
+        // 2b. Named recurrence ("every day", "daily", "every morning", "every Monday", "every week", "every hour")
+        if (recurrence is null)
+        {
+            var recMatch = RecurrenceRegex().Match(working);
+            if (recMatch.Success)
+            {
+                string kind = recMatch.Groups["kind"].Value.ToLowerInvariant();
+                if (kind is "day" or "daily")
+                {
+                    recurrence = "Daily";
+                }
+                else if (kind == "morning")
+                {
+                    recurrence = "Daily";
+                    explicitTime ??= new TimeSpan(9, 0, 0);
+                }
+                else if (kind == "evening")
+                {
+                    recurrence = "Daily";
+                    explicitTime ??= new TimeSpan(18, 0, 0);
+                }
+                else if (kind == "night")
+                {
+                    recurrence = "Daily";
+                    explicitTime ??= new TimeSpan(20, 0, 0);
+                }
+                else if (kind is "week" or "weekly")
+                {
+                    recurrence = "Weekly";
+                }
+                else if (kind is "hour" or "hourly")
+                {
+                    recurrence = "Hourly";
+                    repeatIntervalMinutes = 60;
+                    hasRelativeOffset = true;
+                    relativeTarget = now.AddHours(1);
+                }
+                else if (DayNames.TryGetValue(kind, out var recDow))
+                {
+                    recurrence = "Weekly";
+                    explicitDate = NextWeekday(now.Date, recDow, forceNextWeek: false, includeToday: true);
+                }
+
+                working = RemoveSpan(working, recMatch.Index, recMatch.Length);
+            }
         }
 
         // 3. Relative duration ("in 30 minutes", "in 2 hours 15 mins", "in 3 days", "in half an hour")
@@ -305,16 +356,28 @@ public static partial class NaturalLanguageReminderParser
         if (string.IsNullOrWhiteSpace(title))
             title = input.Trim();
 
-        return new ParsedReminder(title, dueAt, recurrence);
+        return new ParsedReminder(title, dueAt, recurrence, repeatIntervalMinutes);
     }
 
-    public static DateTime? ComputeNextOccurrence(DateTime currentDue, string? recurrence) => recurrence switch
+    public static DateTime? ComputeNextOccurrence(DateTime currentDue, string? recurrence, int? repeatIntervalMinutes = null, DateTime? referenceNow = null)
     {
-        "Hourly" => currentDue.AddHours(1),
-        "Daily" => currentDue.AddDays(1),
-        "Weekly" => currentDue.AddDays(7),
-        _ => null
-    };
+        var now = referenceNow ?? DateTime.Now;
+        if (repeatIntervalMinutes is > 0)
+        {
+            var next = currentDue.AddMinutes(repeatIntervalMinutes.Value);
+            if (next <= now)
+                next = now.AddMinutes(repeatIntervalMinutes.Value);
+            return next;
+        }
+
+        return recurrence switch
+        {
+            "Hourly" => currentDue.AddHours(1) <= now ? now.AddHours(1) : currentDue.AddHours(1),
+            "Daily" => currentDue.AddDays(1),
+            "Weekly" => currentDue.AddDays(7),
+            _ => null
+        };
+    }
 
     public static string FormatDueLabel(DateTime dueAt, DateTime? referenceNow = null, string? recurrence = null)
     {
@@ -373,13 +436,13 @@ public static partial class NaturalLanguageReminderParser
         // "in an hour" / "in a minute" / "in a day" / "in a week"
         s = SpokenArticleUnitRegex().Replace(s, "in 1 ${unit}");
 
-        // "twenty five minutes" -> "25 minutes", "five minutes" -> "5 minutes"
+        // "in twenty five minutes" -> "in 25 minutes", "every fifteen minutes" -> "every 15 minutes"
         s = SpokenCompoundDurationRegex().Replace(s, m =>
         {
             int tens = SpokenNumbers.GetValueOrDefault(m.Groups["tens"].Value, 0);
             int ones = m.Groups["ones"].Success ? SpokenNumbers.GetValueOrDefault(m.Groups["ones"].Value, 0) : 0;
             int total = tens + ones;
-            return total > 0 ? $"in {total} {m.Groups["unit"].Value}" : m.Value;
+            return total > 0 ? $"{m.Groups["prefix"].Value} {total} {m.Groups["unit"].Value}" : m.Value;
         });
 
         // "at five thirty pm" -> "at 5:30 pm", "at seven o'clock" -> "at 7:00", "at eight pm" -> "at 8 pm"
@@ -428,10 +491,16 @@ public static partial class NaturalLanguageReminderParser
         return cleaned;
     }
 
-    [GeneratedRegex(@"^(?:please\s+)?(?:remind\s+me\s+(?:to\s+)?|set\s+(?:a\s+)?reminder\s+(?:to\s+|for\s+)?|remember\s+(?:to\s+)?|don'?t\s+forget\s+(?:to\s+)?)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(?:please\s+)?(?:remind\s+me\s+(?:to\s+)?|set\s+(?:a\s+)?(?:continuous\s+|repeating\s+)?reminder\s+(?:to\s+|for\s+)?|(?:continuous|repeating)\s+reminder\s+(?:to\s+|for\s+)?|remember\s+(?:to\s+)?|don'?t\s+forget\s+(?:to\s+)?)", RegexOptions.IgnoreCase)]
     private static partial Regex LeadingFillerRegex();
 
-    [GeneratedRegex(@"\b(?:every\s+(?<kind>day|morning|evening|night|week|hour|sunday|sun|monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat)|(?<kind>daily|weekly|hourly))\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(?:in\s+)?every\s+(?:half\s+an?\s+hour|half\s+hour)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex EveryHalfHourRegex();
+
+    [GeneratedRegex(@"\b(?:in\s+)?every\s+(?<num>\d+)\s*(?<unit>minutes?|mins?|m|hours?|hrs?|h|days?|d)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex IntervalRecurrenceRegex();
+
+    [GeneratedRegex(@"\b(?:in\s+)?(?:every\s+(?<kind>day|morning|evening|night|week|hour|sunday|sun|monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat)|(?<kind>daily|weekly|hourly))\b", RegexOptions.IgnoreCase)]
     private static partial Regex RecurrenceRegex();
 
     [GeneratedRegex(@"\bin\s+(?:half\s+an\s+hour|an?\s+half\s+hour)\b", RegexOptions.IgnoreCase)]
@@ -479,7 +548,7 @@ public static partial class NaturalLanguageReminderParser
     [GeneratedRegex(@"\bin\s+an?\s+(?<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b", RegexOptions.IgnoreCase)]
     private static partial Regex SpokenArticleUnitRegex();
 
-    [GeneratedRegex(@"\bin\s+(?<tens>one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|forty-five|fifty)(?:[\s-]+(?<ones>one|two|three|four|five|six|seven|eight|nine))?\s+(?<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(?<prefix>in|every)\s+(?<tens>one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|forty-five|fifty)(?:[\s-]+(?<ones>one|two|three|four|five|six|seven|eight|nine))?\s+(?<unit>seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)\b", RegexOptions.IgnoreCase)]
     private static partial Regex SpokenCompoundDurationRegex();
 
     [GeneratedRegex(@"\b(?<prep>at|by)\s+(?<h>one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)(?:\s+(?<oclock>o'?clock)|\s+(?<m>fifteen|thirty|forty-five|forty|twenty|ten|five))?(?:\s+(?<ampm>am|pm))?\b", RegexOptions.IgnoreCase)]

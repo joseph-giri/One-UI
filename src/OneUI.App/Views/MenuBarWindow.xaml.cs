@@ -14,6 +14,7 @@ public partial class MenuBarWindow : Window
     private readonly WindowTracker? _tracker;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _fullscreenTimer;
+    private readonly DispatcherTimer _volumeHudTimer;
     private MonitorBounds _monitor;
     private nint _lastActiveHwnd;
     private string _lastActiveProcess = string.Empty;
@@ -53,6 +54,13 @@ public partial class MenuBarWindow : Window
         _fullscreenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(220) };
         _fullscreenTimer.Tick += (_, _) => CheckFullscreenState();
         _fullscreenTimer.Start();
+
+        _volumeHudTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1600) };
+        _volumeHudTimer.Tick += (_, _) =>
+        {
+            _volumeHudTimer.Stop();
+            VolumePercentText.Visibility = Visibility.Collapsed;
+        };
 
         RefreshStatus();
     }
@@ -282,6 +290,48 @@ public partial class MenuBarWindow : Window
     private void SystemMenuButton_Click(object sender, RoutedEventArgs e)
     {
         StartMenuRequested?.Invoke(_monitor);
+    }
+
+    private void MenuBar_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        int notches = Math.Sign(e.Delta);
+        if (notches == 0) return;
+
+        float current = _statusService.GetMasterVolume();
+        bool muted = _statusService.GetIsMuted();
+
+        float step = 0.04f * notches; // 4% per wheel notch
+        float next = Math.Clamp(current + step, 0f, 1f);
+
+        if (muted && notches > 0)
+            _statusService.SetMute(false);
+
+        _statusService.SetMasterVolume(next);
+        if (next <= 0.001f)
+            _statusService.SetMute(true);
+
+        UpdateVolumeDisplay(next, next <= 0.001f);
+        e.Handled = true;
+    }
+
+    private void VolumeButton_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == System.Windows.Input.MouseButton.Middle)
+        {
+            bool nextMute = !_statusService.GetIsMuted();
+            _statusService.SetMute(nextMute);
+            UpdateVolumeDisplay(_statusService.GetMasterVolume(), nextMute);
+            e.Handled = true;
+        }
+    }
+
+    private void UpdateVolumeDisplay(float vol, bool muted)
+    {
+        VolumeIcon.Text = muted || vol < 0.01f ? "\uE74F" : vol < 0.5f ? "\uE993" : "\uE767";
+        VolumePercentText.Text = muted ? "Muted" : $"{Math.Round(vol * 100):0}%";
+        VolumePercentText.Visibility = Visibility.Visible;
+        _volumeHudTimer.Stop();
+        _volumeHudTimer.Start();
     }
 
     private void Spotlight_Click(object sender, RoutedEventArgs e) => SpotlightRequested?.Invoke(_monitor);

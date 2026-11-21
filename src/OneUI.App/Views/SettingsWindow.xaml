@@ -389,6 +389,24 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Reminder Sound Card -->
+                            <TextBlock Text="REMINDER CHIME SOUND" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
+                                <Grid Margin="0,4">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Alert Chime" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                        <TextBlock Text="Click any chime to select &amp; preview" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Button Content="Crystal" Style="{StaticResource GlassPillButton}" Click="ReminderSound_Click" Tag="Crystal" Margin="0,0,4,0"/>
+                                        <Button Content="Aurora" Style="{StaticResource GlassPillButton}" Click="ReminderSound_Click" Tag="Aurora" Margin="0,0,4,0"/>
+                                        <Button Content="Marimba" Style="{StaticResource GlassPillButton}" Click="ReminderSound_Click" Tag="Marimba" Margin="0,0,4,0"/>
+                                        <Button Content="Zen" Style="{StaticResource GlassPillButton}" Click="ReminderSound_Click" Tag="Zen" Margin="0,0,4,0"/>
+                                        <Button Content="Mute" Style="{StaticResource GlassPillButton}" Click="ReminderSound_Click" Tag="Mute"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
                             <!-- Clock Widget Full Customization Card -->
                             <TextBlock Text="CLOCK WIDGET CUSTOMIZATION" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,0,0,6"/>
                             <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,14">
