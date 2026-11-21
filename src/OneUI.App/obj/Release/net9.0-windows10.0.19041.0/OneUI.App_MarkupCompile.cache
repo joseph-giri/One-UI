@@ -10,11 +10,11 @@ none
 false
 TRACE;RELEASE;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS10_0_19041_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS10_0_19041_0_OR_GREATER;WINDOWS10_0_18362_0_OR_GREATER;WINDOWS10_0_17763_0_OR_GREATER;WINDOWS8_0_OR_GREATER;WINDOWS7_0_OR_GREATER
 c:\Users\Joseph\One UI\src\OneUI.App\App.xaml
-12-1074348302
+14797252102
 
-30-1665248990
+34-2073158063
 221-1798528248
-Theme\LiquidGlass.xaml;Views\CalendarFlyoutWindow.xaml;Views\ControlCenterWindow.xaml;Views\DesktopWidgetWindow.xaml;Views\DockWindow.xaml;Views\LiveWallpaperWindow.xaml;Views\MenuBarWindow.xaml;Views\SettingsWindow.xaml;Views\SpotlightWindow.xaml;Views\StartMenuWindow.xaml;Views\TrafficLightOverlay.xaml;Views\WindowPreviewPopup.xaml;
+Theme\LiquidGlass.xaml;Views\CalendarFlyoutWindow.xaml;Views\ControlCenterWindow.xaml;Views\DesktopWidgetWindow.xaml;Views\DockWindow.xaml;Views\LiveWallpaperWindow.xaml;Views\MenuBarWindow.xaml;Views\ScreenColorPickerWindow.xaml;Views\SettingsWindow.xaml;Views\SpotlightWindow.xaml;Views\StartMenuWindow.xaml;Views\TopBarPopoverWindow.xaml;Views\TrafficLightOverlay.xaml;Views\WindowPreviewPopup.xaml;
 
 False
 

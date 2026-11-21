@@ -66,3 +66,7 @@ c:\Users\Joseph\One UI\src\OneUI.App\bin\Release\net9.0-windows10.0.19041.0\NAud
 c:\Users\Joseph\One UI\src\OneUI.App\bin\Release\net9.0-windows10.0.19041.0\NAudio.WinForms.dll
 c:\Users\Joseph\One UI\src\OneUI.App\bin\Release\net9.0-windows10.0.19041.0\NAudio.WinMM.dll
 c:\Users\Joseph\One UI\src\OneUI.App\bin\Release\net9.0-windows10.0.19041.0\Whisper.net.dll
+c:\Users\Joseph\One UI\src\OneUI.App\obj\Release\net9.0-windows10.0.19041.0\Views\ScreenColorPickerWindow.baml
+c:\Users\Joseph\One UI\src\OneUI.App\obj\Release\net9.0-windows10.0.19041.0\Views\TopBarPopoverWindow.baml
+c:\Users\Joseph\One UI\src\OneUI.App\obj\Release\net9.0-windows10.0.19041.0\Views\ScreenColorPickerWindow.g.cs
+c:\Users\Joseph\One UI\src\OneUI.App\obj\Release\net9.0-windows10.0.19041.0\Views\TopBarPopoverWindow.g.cs

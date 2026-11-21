@@ -9,6 +9,17 @@ public sealed class AppSettings
     public bool HideWindowsTaskbar { get; set; } = true;
     public bool LaunchAtStartup { get; set; } = false;
 
+    // Top Bar Productivity Modules
+    public bool TopBarShowFocusTimer { get; set; } = true;
+    public bool TopBarShowNextReminder { get; set; } = true;
+    public bool TopBarShowClipboard { get; set; } = true;
+    public bool TopBarShowNowPlaying { get; set; } = true;
+    public bool TopBarShowScratchpad { get; set; } = true;
+    public bool TopBarShowTelemetry { get; set; } = true;
+    public bool TopBarShowCaptureTools { get; set; } = true;
+    public int FocusDurationMinutes { get; set; } = 25;
+    public int BreakDurationMinutes { get; set; } = 5;
+
     public double DockIconSize { get; set; } = 46;
     public double DockMagnificationScale { get; set; } = 1.5;
     public bool DockAutoHide { get; set; } = false;
@@ -19,9 +30,14 @@ public sealed class AppSettings
     public string GlassTheme { get; set; } = "Dark";
 
     /// <summary>
-    /// Opacity of the translucent tint layer over DWM Acrylic blur (0.10 to 0.75).
+    /// Opacity of the translucent tint layer (0.00 = crystal clear to 0.75 = deep tint).
     /// </summary>
     public double GlassTintOpacity { get; set; } = 0.30;
+
+    /// <summary>
+    /// True = Frosted Acrylic translucency (DWM blur); False = Clear transparency (no DWM blur).
+    /// </summary>
+    public bool EnableGlassBlur { get; set; } = true;
 
     public List<PinnedAppConfig> PinnedApps { get; set; } = DefaultPinnedApps();
 

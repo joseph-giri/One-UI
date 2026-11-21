@@ -168,6 +168,20 @@ public partial class DesktopWidgetWindow : Window
             DesktopLayerHelper.AttachWidgetToDesktop(hwnd);
     }
 
+    public void SyncFromSettings()
+    {
+        if (_kind == DesktopWidgetKind.QuickNotes && NotesBox.Text != _settings.DesktopNoteText)
+        {
+            _suppressNoteChange = true;
+            NotesBox.Text = _settings.DesktopNoteText ?? string.Empty;
+            _suppressNoteChange = false;
+        }
+        else if (_kind == DesktopWidgetKind.Reminder)
+        {
+            RebuildRemindersList();
+        }
+    }
+
     private void KeepOnDesktopBottom()
     {
         var hwnd = new WindowInteropHelper(this).Handle;

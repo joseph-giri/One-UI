@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using OneUI.App.Native;
 using OneUI.Core.Models;
+using OneUI.Core.Services;
 
 namespace OneUI.App.Views;
 
@@ -12,6 +13,9 @@ public partial class MenuBarWindow : Window
     private readonly SystemStatusService _statusService;
     private readonly AppDiscoveryService? _discovery;
     private readonly WindowTracker? _tracker;
+    private readonly AppSettings? _settings;
+    private readonly MediaSessionService? _media;
+    private readonly FocusTimerService? _focusTimer;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _fullscreenTimer;
     private readonly DispatcherTimer _volumeHudTimer;
@@ -27,6 +31,8 @@ public partial class MenuBarWindow : Window
     public event Action<MonitorBounds>? SpotlightRequested;
     public event Action<MonitorBounds>? ControlCenterRequested;
     public event Action<MonitorBounds>? CalendarRequested;
+    public event Action<TopBarPopoverMode, MonitorBounds>? PopoverRequested;
+    public event Action? ColorPickerRequested;
     public event Action? SettingsRequested;
     public event Action? ToggleTaskbarRequested;
     public event Action? QuitRequested;
@@ -35,17 +41,35 @@ public partial class MenuBarWindow : Window
         SystemStatusService statusService,
         MonitorBounds? monitor = null,
         AppDiscoveryService? discovery = null,
-        WindowTracker? tracker = null)
+        WindowTracker? tracker = null,
+        AppSettings? settings = null,
+        MediaSessionService? media = null,
+        FocusTimerService? focusTimer = null)
     {
         InitializeComponent();
         _statusService = statusService;
         _discovery = discovery;
         _tracker = tracker;
+        _settings = settings;
+        _media = media;
+        _focusTimer = focusTimer;
         _monitor = monitor ?? MonitorHelper.GetPrimaryMonitor();
 
         GlassHelper.PrepareLiquidGlass(this, roundedCorners: false, isToolWindow: true, noActivate: true);
         Loaded += (_, _) => PositionOnMonitor(_monitor);
         Closed += (_, _) => UnregisterAppBar();
+
+        if (_media is not null)
+        {
+            _media.NowPlayingChanged += info => Dispatcher.BeginInvoke(() => UpdateMiniMedia(info));
+            UpdateMiniMedia(_media.Current);
+        }
+
+        if (_focusTimer is not null)
+        {
+            _focusTimer.StateChanged += () => Dispatcher.BeginInvoke(RefreshFocusPill);
+            RefreshFocusPill();
+        }
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => RefreshStatus();
@@ -62,7 +86,22 @@ public partial class MenuBarWindow : Window
             VolumePercentText.Visibility = Visibility.Collapsed;
         };
 
+        ApplyProductivityVisibility();
         RefreshStatus();
+    }
+
+    public void ApplyProductivityVisibility()
+    {
+        if (_settings is null) return;
+        FocusTimerPill.Visibility = _settings.TopBarShowFocusTimer ? Visibility.Visible : Visibility.Collapsed;
+        NextReminderPill.Visibility = _settings.TopBarShowNextReminder ? Visibility.Visible : Visibility.Collapsed;
+        ClipboardBtn.Visibility = _settings.TopBarShowClipboard ? Visibility.Visible : Visibility.Collapsed;
+        ScratchpadBtn.Visibility = _settings.TopBarShowScratchpad ? Visibility.Visible : Visibility.Collapsed;
+        TelemetryPill.Visibility = _settings.TopBarShowTelemetry ? Visibility.Visible : Visibility.Collapsed;
+        CaptureBtn.Visibility = _settings.TopBarShowCaptureTools ? Visibility.Visible : Visibility.Collapsed;
+        if (_media is not null) UpdateMiniMedia(_media.Current);
+        RefreshReminderPill();
+        RefreshFocusPill();
     }
 
     public void SetUserEnabled(bool enabled, bool taskbarHidden = true)
@@ -219,6 +258,90 @@ public partial class MenuBarWindow : Window
         {
             BatteryPanel.Visibility = Visibility.Collapsed;
         }
+
+        // Update productivity telemetry & reminder countdown every 2 seconds
+        if (_tickCount % 2 == 0)
+        {
+            if (_settings?.TopBarShowTelemetry == true)
+            {
+                var t = _statusService.GetTelemetry();
+                var netSpeed = _statusService.GetNetworkThroughput();
+                string speedStr = netSpeed.DownloadBytesPerSec >= 1024
+                    ? $" · ↓{SystemStatusService.FormatSpeedCompact(netSpeed.DownloadBytesPerSec)}"
+                    : "";
+                TelemetryPillText.Text = $"CPU {t.CpuPercent}% · RAM {t.RamPercent}%{speedStr}";
+            }
+            RefreshReminderPill();
+        }
+    }
+
+    private void UpdateMiniMedia(NowPlayingInfo info)
+    {
+        bool hasMedia = !string.IsNullOrWhiteSpace(info.Title) && !string.Equals(info.Title, "Nothing Playing", StringComparison.OrdinalIgnoreCase);
+        bool show = (_settings?.TopBarShowNowPlaying ?? true) && hasMedia;
+        NowPlayingPill.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (!show) return;
+        MiniMediaTitleText.Text = info.Title;
+        MiniMediaPlayIcon.Text = info.IsPlaying ? "\uE769" : "\uE768";
+    }
+
+    private void RefreshFocusPill()
+    {
+        if (_focusTimer is null) return;
+        if (_focusTimer.IsRunning)
+        {
+            FocusPillText.Text = _focusTimer.FormattedRemaining;
+            FocusPillIcon.Foreground = _focusTimer.Phase == FocusPhase.Break
+                ? new SolidColorBrush(Color.FromRgb(48, 209, 88))
+                : new SolidColorBrush(Color.FromRgb(10, 132, 255));
+        }
+        else
+        {
+            FocusPillText.Text = _focusTimer.Phase == FocusPhase.Break ? "Break" : "Focus";
+            FocusPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
+        }
+    }
+
+    public void RefreshReminderPill()
+    {
+        if (_settings is null || !_settings.TopBarShowNextReminder) return;
+        var now = DateTime.Now;
+        var next = _settings.Reminders?
+            .Where(r => !r.IsCompleted && !r.IsPaused)
+            .OrderBy(r => r.DueAt ?? DateTime.MaxValue)
+            .FirstOrDefault();
+
+        if (next is null)
+        {
+            ReminderPillText.Text = "Reminders";
+            ReminderPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
+            return;
+        }
+
+        string title = next.Text.Length > 18 ? next.Text[..18] + "…" : next.Text;
+        if (next.DueAt.HasValue)
+        {
+            var diff = next.DueAt.Value - now;
+            string shortDue = diff.TotalSeconds < -30
+                ? "Overdue"
+                : diff.TotalMinutes < 60
+                    ? $"{Math.Max(1, (int)Math.Ceiling(diff.TotalMinutes))}m"
+                    : diff.TotalHours < 24
+                        ? next.DueAt.Value.ToString("h:mm tt")
+                        : next.DueAt.Value.ToString("ddd");
+
+            ReminderPillText.Text = $"{title} · {shortDue}";
+            ReminderPillIcon.Foreground = diff.TotalSeconds < -30
+                ? new SolidColorBrush(Color.FromRgb(255, 69, 58))
+                : next.RepeatIntervalMinutes is > 0
+                    ? new SolidColorBrush(Color.FromRgb(48, 209, 88))
+                    : new SolidColorBrush(Color.FromRgb(255, 159, 10));
+        }
+        else
+        {
+            ReminderPillText.Text = title;
+            ReminderPillIcon.Foreground = new SolidColorBrush(Color.FromRgb(100, 210, 255));
+        }
     }
 
     private void WindowMenuButton_Click(object sender, RoutedEventArgs e)
@@ -337,6 +460,23 @@ public partial class MenuBarWindow : Window
     private void Spotlight_Click(object sender, RoutedEventArgs e) => SpotlightRequested?.Invoke(_monitor);
     private void ControlCenter_Click(object sender, RoutedEventArgs e) => ControlCenterRequested?.Invoke(_monitor);
     private void Clock_Click(object sender, RoutedEventArgs e) => CalendarRequested?.Invoke(_monitor);
+    private void FocusTimer_Click(object sender, RoutedEventArgs e) => PopoverRequested?.Invoke(TopBarPopoverMode.Focus, _monitor);
+    private void FocusTimer_RightClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        _focusTimer?.ToggleStartPause();
+        e.Handled = true;
+    }
+    private void Reminders_Click(object sender, RoutedEventArgs e) => PopoverRequested?.Invoke(TopBarPopoverMode.Reminders, _monitor);
+    private void Clipboard_Click(object sender, RoutedEventArgs e) => PopoverRequested?.Invoke(TopBarPopoverMode.Clipboard, _monitor);
+    private void Scratchpad_Click(object sender, RoutedEventArgs e) => PopoverRequested?.Invoke(TopBarPopoverMode.Scratchpad, _monitor);
+    private void SnippingTool_Click(object sender, RoutedEventArgs e) => SystemStatusService.OpenSnippingTool();
+    private void ColorPicker_RightClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        ColorPickerRequested?.Invoke();
+        e.Handled = true;
+    }
+    private void MiniMediaPlayPause_Click(object sender, RoutedEventArgs e) => _media?.TogglePlayPause();
+    private void MiniMediaNext_Click(object sender, RoutedEventArgs e) => _media?.SkipNext();
     private void OpenSettings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
     private void ToggleTaskbar_Click(object sender, RoutedEventArgs e) => ToggleTaskbarRequested?.Invoke();
     private void Quit_Click(object sender, RoutedEventArgs e) => QuitRequested?.Invoke();

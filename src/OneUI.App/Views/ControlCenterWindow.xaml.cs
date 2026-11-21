@@ -87,8 +87,9 @@ public partial class ControlCenterWindow : Window
             : new SolidColorBrush(Color.FromArgb(70, 255, 255, 255));
 
         _suppressEvents = true;
-        GlassSlider.Value = Math.Round(_settings.GlassTintOpacity * 100);
+        GlassSlider.Value = Math.Clamp(Math.Round(_settings.GlassTintOpacity * 100), 0, 75);
         GlassPercentText.Text = $"{(int)GlassSlider.Value}%";
+        GlassBlurModeText.Text = _settings.EnableGlassBlur ? "Frosted" : "Clear";
 
         float vol = _statusService.GetMasterVolume();
         bool muted = _statusService.GetIsMuted();
@@ -113,6 +114,13 @@ public partial class ControlCenterWindow : Window
         if (_suppressEvents || !IsInitialized) return;
         _settings.GlassTintOpacity = Math.Round(e.NewValue / 100.0, 2);
         GlassPercentText.Text = $"{(int)Math.Round(e.NewValue)}%";
+        GlassOpacityChanged?.Invoke();
+    }
+
+    private void GlassBlurToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.EnableGlassBlur = !_settings.EnableGlassBlur;
+        GlassBlurModeText.Text = _settings.EnableGlassBlur ? "Frosted" : "Clear";
         GlassOpacityChanged?.Invoke();
     }
 

@@ -121,13 +121,18 @@
                     Margin="0,0,0,10">
                 <StackPanel>
                     <Grid Margin="0,0,0,6">
-                        <TextBlock Text="Glass Translucency" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
-                        <TextBlock x:Name="GlassPercentText" Text="30%" FontSize="11" Foreground="{DynamicResource GlassTextSecondaryBrush}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="Glass &amp; Transparency" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Style="{StaticResource GlassPillButton}" Padding="7,1" Margin="0,0,6,0" Click="GlassBlurToggle_Click" ToolTip="Switch between Frosted Blur and Clear Transparency">
+                                <TextBlock x:Name="GlassBlurModeText" Text="Frosted" FontSize="10.5" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                            </Button>
+                            <TextBlock x:Name="GlassPercentText" Text="30%" FontSize="11" Foreground="{DynamicResource GlassTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                     <Slider x:Name="GlassSlider"
                             Style="{StaticResource MacGlassSlider}"
-                            Minimum="10"
-                            Maximum="68"
+                            Minimum="0"
+                            Maximum="75"
                             ValueChanged="GlassSlider_ValueChanged"/>
                 </StackPanel>
             </Border>

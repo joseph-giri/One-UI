@@ -8,6 +8,7 @@ namespace OneUI.App.Native;
 public sealed record BatteryStatus(bool HasBattery, int Percent, bool IsCharging);
 public sealed record NetworkStatus(bool IsConnected, string Label);
 public sealed record SystemTelemetry(int CpuPercent, int RamPercent, double UsedRamGb, double TotalRamGb);
+public sealed record NetworkThroughput(double DownloadBytesPerSec, double UploadBytesPerSec);
 
 /// <summary>
 /// Provides live Windows 11 system telemetry (CoreAudio volume, battery, network, CPU/RAM)
@@ -19,6 +20,56 @@ public sealed class SystemStatusService
     private ulong _prevKernel;
     private ulong _prevUser;
     private bool _hasCpuSample;
+    private long _prevNetRecv;
+    private long _prevNetSent;
+    private DateTime _prevNetTime = DateTime.MinValue;
+
+    public NetworkThroughput GetNetworkThroughput()
+    {
+        try
+        {
+            long totalRecv = 0;
+            long totalSent = 0;
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != OperationalStatus.Up) continue;
+                if (nic.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) continue;
+                var stats = nic.GetIPv4Statistics();
+                totalRecv += stats.BytesReceived;
+                totalSent += stats.BytesSent;
+            }
+
+            var now = DateTime.UtcNow;
+            if (_prevNetTime == DateTime.MinValue)
+            {
+                _prevNetRecv = totalRecv;
+                _prevNetSent = totalSent;
+                _prevNetTime = now;
+                return new NetworkThroughput(0, 0);
+            }
+
+            double dt = Math.Max(0.2, (now - _prevNetTime).TotalSeconds);
+            double down = Math.Max(0, (totalRecv - _prevNetRecv) / dt);
+            double up = Math.Max(0, (totalSent - _prevNetSent) / dt);
+            _prevNetRecv = totalRecv;
+            _prevNetSent = totalSent;
+            _prevNetTime = now;
+            return new NetworkThroughput(down, up);
+        }
+        catch
+        {
+            return new NetworkThroughput(0, 0);
+        }
+    }
+
+    public static string FormatSpeedCompact(double bytesPerSec)
+    {
+        if (bytesPerSec >= 1024 * 1024)
+            return $"{bytesPerSec / (1024 * 1024):0.0}M";
+        if (bytesPerSec >= 1024)
+            return $"{bytesPerSec / 1024:0}K";
+        return $"{bytesPerSec:0}B";
+    }
     public BatteryStatus GetBatteryStatus()
     {
         if (!Win32Api.GetSystemPowerStatus(out var status))

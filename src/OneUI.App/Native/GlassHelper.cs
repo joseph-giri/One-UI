@@ -62,16 +62,22 @@ public static class GlassHelper
         }
     }
 
-    public static void UpdateTheme(Window window, bool isDark, bool roundedCorners = true)
+    public static void UpdateTheme(Window window, bool isDark, bool roundedCorners = true, bool blurEnabled = true)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd != nint.Zero)
+        if (hwnd == nint.Zero) return;
+
+        if (blurEnabled)
         {
             ApplyDwmGlass(hwnd, isDark, roundedCorners);
         }
+        else
+        {
+            SetBackdropEnabled(window, enabled: false, isDark: isDark, roundedCorners: roundedCorners);
+        }
     }
 
-    public static void SetBackdropEnabled(Window window, bool enabled, bool isDark = true)
+    public static void SetBackdropEnabled(Window window, bool enabled, bool isDark = true, bool roundedCorners = false)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == nint.Zero) return;
@@ -82,10 +88,12 @@ public static class GlassHelper
         }
         else
         {
+            int darkMode = isDark ? 1 : 0;
+            _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
             int none = Win32Api.DWMSBT_NONE;
             _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_SYSTEMBACKDROP_TYPE, ref none, sizeof(int));
-            int noCorner = Win32Api.DWMWCP_DONOTROUND;
-            _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref noCorner, sizeof(int));
+            int cornerPref = roundedCorners ? Win32Api.DWMWCP_ROUND : Win32Api.DWMWCP_DONOTROUND;
+            _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
             int noBorder = Win32Api.DWMWA_COLOR_NONE;
             _ = Win32Api.DwmSetWindowAttribute(hwnd, Win32Api.DWMWA_BORDER_COLOR, ref noBorder, sizeof(int));
         }

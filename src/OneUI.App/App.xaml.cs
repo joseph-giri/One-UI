@@ -23,6 +23,8 @@ public partial class App : System.Windows.Application
     private SystemStatusService _status = null!;
     private MediaSessionService _media = null!;
     private WeatherService _weather = null!;
+    private FocusTimerService _focusTimer = null!;
+    private ClipboardHistoryService _clipboard = null!;
     private string _lastWeatherCity = string.Empty;
     private bool _lastWeatherFahrenheit;
     private WinForms.NotifyIcon? _trayIcon;
@@ -32,6 +34,7 @@ public partial class App : System.Windows.Application
     private readonly Dictionary<DesktopWidgetKind, DesktopWidgetWindow> _widgets = new();
     private ControlCenterWindow? _controlCenter;
     private CalendarFlyoutWindow? _calendarFlyout;
+    private TopBarPopoverWindow? _topBarPopover;
     private StartMenuWindow? _startMenu;
     private DockWindow? _dock;
     private SpotlightWindow? _spotlight;
@@ -100,6 +103,16 @@ public partial class App : System.Windows.Application
         _status = new SystemStatusService();
         _media = new MediaSessionService();
         _weather = new WeatherService();
+        _focusTimer = new FocusTimerService(_settings.FocusDurationMinutes, _settings.BreakDurationMinutes);
+        _focusTimer.SessionCompleted += phase =>
+        {
+            ReminderSoundService.Play(_settings.ReminderSound);
+            string msg = phase == FocusPhase.Focus
+                ? "Focus session complete! Time for a short break."
+                : "Break complete! Ready for your next focus session.";
+            try { _trayIcon?.ShowBalloonTip(7000, "OneUI Focus Timer", msg, WinForms.ToolTipIcon.Info); } catch { }
+        };
+        _clipboard = new ClipboardHistoryService();
         _lastWeatherCity = _settings.WeatherCity ?? string.Empty;
         _lastWeatherFahrenheit = _settings.WeatherUseFahrenheit;
         _ = _media.StartAsync();
@@ -170,6 +183,13 @@ public partial class App : System.Windows.Application
     {
         _controlCenter = new ControlCenterWindow(_status, _media, _settings);
         _calendarFlyout = new CalendarFlyoutWindow();
+        _topBarPopover = new TopBarPopoverWindow(_settings, _focusTimer, _clipboard);
+        _topBarPopover.DataChanged += () =>
+        {
+            _settingsService.Save(_settings);
+            foreach (var w in _widgets.Values) w.SyncFromSettings();
+            foreach (var bar in _menuBars) bar.RefreshReminderPill();
+        };
         _startMenu = new StartMenuWindow(_discovery);
         _dock = new DockWindow(_settings, _discovery, _tracker);
         _spotlight = new SpotlightWindow(_discovery, _tracker);
@@ -312,16 +332,30 @@ public partial class App : System.Windows.Application
 
         foreach (var monitor in MonitorHelper.GetAllMonitors())
         {
-            var bar = new MenuBarWindow(_status, monitor, _discovery, _tracker);
+            var bar = new MenuBarWindow(_status, monitor, _discovery, _tracker, _settings, _media, _focusTimer);
             bar.StartMenuRequested += mon => _startMenu?.ToggleOpen(mon, fromTopLeft: true);
             bar.SpotlightRequested += mon => _spotlight?.ToggleOpen(mon);
             bar.ControlCenterRequested += mon => _controlCenter?.ToggleOpen(mon);
             bar.CalendarRequested += mon => _calendarFlyout?.ToggleOpen(mon);
+            bar.PopoverRequested += (mode, mon) => _topBarPopover?.ToggleOpen(mode, mon);
+            bar.ColorPickerRequested += LaunchColorPicker;
             bar.SettingsRequested += ShowSettings;
             bar.ToggleTaskbarRequested += ToggleTaskbar;
             bar.QuitRequested += SafeQuit;
             _menuBars.Add(bar);
         }
+    }
+
+    private void LaunchColorPicker()
+    {
+        var picker = new ScreenColorPickerWindow();
+        picker.ColorPicked += hex =>
+        {
+            _clipboard.CopyToClipboard(hex);
+            try { _trayIcon?.ShowBalloonTip(4000, "Color Copied", $"{hex} copied to clipboard", WinForms.ToolTipIcon.Info); } catch { }
+        };
+        picker.Show();
+        picker.Activate();
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)
@@ -427,6 +461,7 @@ public partial class App : System.Windows.Application
         foreach (var bar in _menuBars)
         {
             bar.SetUserEnabled(_settings.EnableMenuBar, taskbarHidden: hideTaskbar);
+            bar.ApplyProductivityVisibility();
         }
 
         if (_dock is not null)
@@ -472,6 +507,8 @@ public partial class App : System.Windows.Application
         _tracker?.Dispose();
         _hotkeys?.Dispose();
         _media?.Dispose();
+        _focusTimer?.Dispose();
+        _clipboard?.Dispose();
 
         if (_trayIcon is not null)
         {

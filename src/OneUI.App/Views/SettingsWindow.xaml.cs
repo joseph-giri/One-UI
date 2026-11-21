@@ -35,10 +35,19 @@ public partial class SettingsWindow : Window
         EnableMenuBarCheck.IsChecked = _settings.EnableMenuBar;
         HideTaskbarCheck.IsChecked = _settings.HideWindowsTaskbar;
         LaunchAtStartupCheck.IsChecked = _settings.LaunchAtStartup;
-        TintOpacitySlider.Value = _settings.GlassTintOpacity;
+        TintOpacitySlider.Value = Math.Clamp(_settings.GlassTintOpacity, 0.0, 0.75);
+        EnableGlassBlurCheck.IsChecked = _settings.EnableGlassBlur;
         DockSizeSlider.Value = _settings.DockIconSize;
         DockMagSlider.Value = _settings.DockMagnificationScale;
         DockAutoHideCheck.IsChecked = _settings.DockAutoHide;
+
+        TopBarFocusCheck.IsChecked = _settings.TopBarShowFocusTimer;
+        TopBarReminderCheck.IsChecked = _settings.TopBarShowNextReminder;
+        TopBarNowPlayingCheck.IsChecked = _settings.TopBarShowNowPlaying;
+        TopBarClipboardCheck.IsChecked = _settings.TopBarShowClipboard;
+        TopBarScratchpadCheck.IsChecked = _settings.TopBarShowScratchpad;
+        TopBarTelemetryCheck.IsChecked = _settings.TopBarShowTelemetry;
+        TopBarCaptureCheck.IsChecked = _settings.TopBarShowCaptureTools;
 
         EnableWallpaperCheck.IsChecked = _settings.EnableLiveWallpaper;
         PauseFullscreenCheck.IsChecked = _settings.PauseWallpaperOnFullscreen;
@@ -113,6 +122,31 @@ public partial class SettingsWindow : Window
     private void LightTheme_Click(object sender, RoutedEventArgs e)
     {
         _settings.GlassTheme = "Light";
+        SettingsApplied?.Invoke();
+    }
+
+    private void GlassPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string preset }) return;
+        _loading = true;
+        switch (preset)
+        {
+            case "Clear":
+                _settings.EnableGlassBlur = false;
+                _settings.GlassTintOpacity = 0.04;
+                break;
+            case "Smoked":
+                _settings.EnableGlassBlur = false;
+                _settings.GlassTintOpacity = 0.28;
+                break;
+            default: // Frosted
+                _settings.EnableGlassBlur = true;
+                _settings.GlassTintOpacity = 0.30;
+                break;
+        }
+        EnableGlassBlurCheck.IsChecked = _settings.EnableGlassBlur;
+        TintOpacitySlider.Value = _settings.GlassTintOpacity;
+        _loading = false;
         SettingsApplied?.Invoke();
     }
 
@@ -253,9 +287,18 @@ public partial class SettingsWindow : Window
         _settings.LaunchAtStartup = LaunchAtStartupCheck.IsChecked == true;
         SystemStatusService.SetLaunchAtStartup(_settings.LaunchAtStartup);
         _settings.GlassTintOpacity = Math.Round(TintOpacitySlider.Value, 2);
+        _settings.EnableGlassBlur = EnableGlassBlurCheck.IsChecked == true;
         _settings.DockIconSize = Math.Round(DockSizeSlider.Value);
         _settings.DockMagnificationScale = Math.Round(DockMagSlider.Value, 2);
         _settings.DockAutoHide = DockAutoHideCheck.IsChecked == true;
+
+        _settings.TopBarShowFocusTimer = TopBarFocusCheck.IsChecked == true;
+        _settings.TopBarShowNextReminder = TopBarReminderCheck.IsChecked == true;
+        _settings.TopBarShowNowPlaying = TopBarNowPlayingCheck.IsChecked == true;
+        _settings.TopBarShowClipboard = TopBarClipboardCheck.IsChecked == true;
+        _settings.TopBarShowScratchpad = TopBarScratchpadCheck.IsChecked == true;
+        _settings.TopBarShowTelemetry = TopBarTelemetryCheck.IsChecked == true;
+        _settings.TopBarShowCaptureTools = TopBarCaptureCheck.IsChecked == true;
 
         _settings.EnableLiveWallpaper = EnableWallpaperCheck.IsChecked == true;
         _settings.PauseWallpaperOnFullscreen = PauseFullscreenCheck.IsChecked == true;

@@ -172,8 +172,25 @@
                                             <ColumnDefinition Width="150"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Glass Tint Density" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
-                                        <Slider x:Name="TintOpacitySlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0.10" Maximum="0.68" ValueChanged="Slider_Changed"/>
+                                        <TextBlock Text="Glass Opacity (0%–75%)" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Slider x:Name="TintOpacitySlider" Grid.Column="1" Style="{StaticResource MacGlassSlider}" Minimum="0.00" Maximum="0.75" ValueChanged="Slider_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="Frosted Blur (Translucency)" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}"/>
+                                            <TextBlock Text="Turn off for crystal-clear transparency without frosted blur" FontSize="10.5" Foreground="{DynamicResource GlassTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="EnableGlassBlurCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Quick Finish" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Frosted" Style="{StaticResource GlassPillButton}" Click="GlassPreset_Click" Tag="Frosted" Margin="0,0,5,0"/>
+                                            <Button Content="Smoked Clear" Style="{StaticResource GlassPillButton}" Click="GlassPreset_Click" Tag="Smoked" Margin="0,0,5,0"/>
+                                            <Button Content="Ultra Clear" Style="{StaticResource GlassPillButton}" Click="GlassPreset_Click" Tag="Clear"/>
+                                        </StackPanel>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -202,6 +219,46 @@
                                     <Grid Margin="0,4">
                                         <TextBlock Text="Auto-Hide Dock" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
                                         <CheckBox x:Name="DockAutoHideCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="TOP BAR PRODUCTIVITY TOOLS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource GlassTextSecondaryBrush}" Margin="4,14,0,6"/>
+                            <Border Background="{DynamicResource GlassCardBrush}" BorderBrush="{DynamicResource LiquidGlassRimBrush}" BorderThickness="1" CornerRadius="12" Padding="14,10">
+                                <StackPanel>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Focus / Pomodoro Timer Pill" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarFocusCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Next Reminder Pill &amp; Voice Quick-Add" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarReminderCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Mini Now-Playing Controls" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarNowPlayingCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Clipboard History Popover" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarClipboardCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Quick Scratchpad Popover" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarScratchpadCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Live CPU / RAM / Network Speed" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarTelemetryCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
+                                    </Grid>
+                                    <Separator Background="{DynamicResource GlassDividerBrush}" Margin="0,5"/>
+                                    <Grid Margin="0,4">
+                                        <TextBlock Text="Capture &amp; Color Picker Eyedropper" FontSize="13" Foreground="{DynamicResource GlassTextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <CheckBox x:Name="TopBarCaptureCheck" Style="{StaticResource MacToggleSwitch}" HorizontalAlignment="Right" Click="AnySetting_Changed"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>
